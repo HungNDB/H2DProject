@@ -1,0 +1,109 @@
+@using H2DProject.Models
+@model Order
+@{ ViewData["Title"] = "Thanh toán"; }
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<div style="max-width:480px; margin:0 auto;">
+    <div class="card">
+        <div style="margin-bottom:16px;">
+            <div style="font-size:16px; font-weight:600; margin-bottom:4px;">
+                Đơn #@Model.OrderId — @Model.Table.TableNumber
+            </div>
+            <div style="font-size:12px; color:var(--gray-500);">
+                @Model.CreatedAt?.ToString("HH:mm dd/MM/yyyy")
+            </div>
+        </div>
+
+        <!-- Danh sách món -->
+        <div style="margin-bottom:16px;">
+            @foreach (var item in Model.OrderItems)
+            {
+                <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--gray-50); font-size:13px;">
+                    <span>
+                        <span style="color:var(--teal-600); font-weight:600; font-family:var(--font-mono);">×@item.Quantity</span>
+                        @item.Product.Name
+                        @if (!string.IsNullOrEmpty(item.Note))
+                        { <span style="font-size:11px; color:var(--gray-400);"> (@item.Note)</span> }
+                    </span>
+                    <span style="font-family:var(--font-mono); color:var(--gray-600);">
+                        @((item.Quantity * item.UnitPrice).ToString("N0")) ₫
+                    </span>
+                </div>
+            }
+        </div>
+
+        <!-- Tổng tiền -->
+        <div style="background:var(--gray-50); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--gray-500); margin-bottom:5px;">
+                <span>Tạm tính</span>
+                <span style="font-family:var(--font-mono);">@Model.SubTotal?.ToString("N0") ₫</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--gray-500); margin-bottom:8px;">
+                <span>VAT (10%)</span>
+                <span style="font-family:var(--font-mono);">@Model.Vatamount?.ToString("N0") ₫</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:700; border-top:1px solid var(--gray-200); padding-top:8px;">
+                <span>Tổng cộng</span>
+                <span style="color:var(--teal-600); font-family:var(--font-mono);">@Model.TotalAmount?.ToString("N0") ₫</span>
+            </div>
+        </div>
+
+        <!-- Phương thức thanh toán -->
+        <form asp-action="Checkout" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="orderId" value="@Model.OrderId" />
+
+            <div style="margin-bottom:16px;">
+                <div style="font-size:12px; color:var(--gray-500); margin-bottom:8px;">Phương thức thanh toán:</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    @foreach (var method in new[] { ("Cash","💵 Tiền mặt"), ("Card","💳 Thẻ"), ("QRCode","📱 QR Code") })
+                    {
+                        <label style="flex:1; min-width:100px;">
+                            <input type="radio" name="paymentMethod" value="@method.Item1"
+                                   style="display:none;" class="pay-radio"
+                                   @(method.Item1 == "Cash" ? "checked" : "")
+                                   onchange="selectPay(this)">
+                            <div class="pay-option @(method.Item1 == "Cash" ? "selected" : "")"
+                                 id="pay-@method.Item1"
+                                 onclick="this.previousElementSibling.click()">
+                                @method.Item2
+                            </div>
+                        </label>
+                    }
+                </div>
+            </div>
+
+            <div style="display:flex; gap:8px;">
+                <a asp-action="Index" class="btn btn-secondary btn-sm">← Quay lại</a>
+                <button type="submit" class="btn btn-primary btn-full btn-lg">
+                    Xác nhận thanh toán ✓
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Styles {
+<style>
+.pay-option {
+    padding: 10px 12px; border-radius: var(--radius-md);
+    border: 1px solid var(--gray-100); text-align: center;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all 0.15s; background: #fff;
+}
+.pay-option:hover   { border-color: var(--teal-400); }
+.pay-option.selected { background: var(--teal-50); border-color: var(--teal-600); color: var(--teal-700); }
+</style>
+}
+
+@section Scripts {
+<script>
+function selectPay(radio) {
+    document.querySelectorAll('.pay-option').forEach(el => el.classList.remove('selected'));
+    document.getElementById('pay-' + radio.value).classList.add('selected');
+}
+initSignalR('pos', {});
+</script>
+}

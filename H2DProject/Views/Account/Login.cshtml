@@ -1,0 +1,75 @@
+@model H2DProject.Models.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng nhập — H2D Cafe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" />
+    <style>
+        body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--gray-50); }
+        .login-card { width:360px; background:#fff; border:1px solid var(--gray-100); border-radius:var(--radius-lg); overflow:hidden; }
+        .login-header { background:var(--teal-900); color:var(--teal-100); text-align:center; padding:28px 24px; }
+        .login-header h1 { font-size:20px; font-weight:600; margin-bottom:4px; }
+        .login-header p  { font-size:12px; opacity:0.6; }
+        .login-body { padding:24px; }
+        .form-group { margin-bottom:14px; }
+        .form-label { font-size:12px; color:var(--gray-500); margin-bottom:5px; display:block; }
+        .error-msg  { background:var(--red-50); color:var(--red-600); border:1px solid var(--red-100); border-radius:var(--radius-md); padding:8px 12px; font-size:13px; margin-bottom:14px; }
+        .remember-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray-600); margin-bottom:16px; }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <div class="login-header">
+        <div style="font-size:32px; margin-bottom:8px;">☕</div>
+        <h1>H2D Cafe POS</h1>
+        <p>Đăng nhập để tiếp tục</p>
+    </div>
+    <div class="login-body">
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="error-msg">
+                @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <div>@err.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <form asp-action="Login" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+            <div class="form-group">
+                <label class="form-label">Tên đăng nhập</label>
+                <input asp-for="Username" class="form-input"
+                       placeholder="admin" autocomplete="username" autofocus />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Mật khẩu</label>
+                <input asp-for="Password" type="password" class="form-input"
+                       placeholder="••••••••" autocomplete="current-password" />
+            </div>
+
+            <div class="remember-row">
+                <input asp-for="RememberMe" type="checkbox" id="rememberMe" />
+                <label for="rememberMe">Ghi nhớ đăng nhập</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full btn-lg">
+                Đăng nhập →
+            </button>
+        </form>
+
+    </div>
+</div>
+</body>
+</html>

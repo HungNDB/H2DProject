@@ -1,0 +1,436 @@
+@using H2DProject.Models
+@{
+    ViewData["Title"] = "Gọi món";
+    var products   = ViewBag.Products   as List<Product>   ?? new();
+    var tables     = ViewBag.Tables     as List<Table>     ?? new();
+    var categories = ViewBag.Categories as List<Category>  ?? new();
+    var toppings   = ViewBag.Toppings   as List<Topping>   ?? new();
+    var firstTable = tables.FirstOrDefault();
+}
+
+<!-- ── Topping Popup ── -->
+<div id="topping-popup" style="display:none; position:fixed; inset:0;
+     background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:var(--radius-lg); width:400px;
+                max-width:95vw; max-height:88vh; display:flex; flex-direction:column; overflow:hidden;">
+
+        <div style="padding:16px 20px; border-bottom:1px solid var(--gray-100);
+                    display:flex; justify-content:space-between; align-items:center; background:var(--gray-50);">
+            <div>
+                <div style="font-size:15px; font-weight:600;" id="popup-name"></div>
+                <div style="font-size:12px; color:var(--teal-600); margin-top:2px;" id="popup-base-price"></div>
+            </div>
+            <button onclick="closePopup()"
+                    style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray-400);">✕</button>
+        </div>
+
+        <div style="padding:14px 20px; overflow-y:auto; flex:1;">
+            @if (toppings.Any())
+            {
+                <div style="font-size:11px;color:var(--gray-500);margin-bottom:10px;
+                            text-transform:uppercase;letter-spacing:0.5px;font-weight:500;">
+                    Chọn topping (có thể chọn nhiều)
+                </div>
+                @foreach (var t in toppings)
+                {
+                    <div class="topping-row">
+                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
+                            <input type="checkbox" class="topping-cb"
+                                   value="@t.ToppingId"
+                                   data-name="@t.Name"
+                                   data-price="@t.Price"
+                                   style="width:17px;height:17px;accent-color:var(--teal-600);cursor:pointer;flex-shrink:0;"
+                                   onchange="onToppingChange(this)">
+                            <div>
+                                <div style="font-size:13px;font-weight:500;">@t.Name</div>
+                                <div style="font-size:11px;color:var(--teal-600);">+@t.Price.ToString("N0") ₫</div>
+                            </div>
+                        </label>
+                        <div class="topping-qty-ctrl" style="display:none;align-items:center;gap:4px;">
+                            <button type="button" onclick="adjToppingQty(this,-1)"
+                                    style="width:24px;height:24px;border-radius:5px;border:1px solid var(--gray-100);
+                                           background:#fff;cursor:pointer;font-size:15px;display:flex;
+                                           align-items:center;justify-content:center;">−</button>
+                            <input type="number" class="topping-qty" value="1" min="1" max="9"
+                                   style="width:34px;text-align:center;border:1px solid var(--gray-100);
+                                          border-radius:5px;font-size:12px;padding:3px;"
+                                   onchange="recalcPopupTotal()">
+                            <button type="button" onclick="adjToppingQty(this,1)"
+                                    style="width:24px;height:24px;border-radius:5px;border:1px solid var(--gray-100);
+                                           background:#fff;cursor:pointer;font-size:15px;display:flex;
+                                           align-items:center;justify-content:center;">+</button>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="text-align:center;padding:2rem;color:var(--gray-300);font-size:13px;">
+                    Không có topping
+                </div>
+            }
+        </div>
+
+        <div style="padding:14px 20px;border-top:1px solid var(--gray-100);background:var(--gray-50);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span style="font-size:13px;color:var(--gray-500);">Tổng món này:</span>
+                <span style="font-size:16px;font-weight:600;color:var(--teal-600);" id="popup-total">0 ₫</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="closePopup()">Huỷ</button>
+                <button class="btn btn-primary btn-full" onclick="confirmAdd()">Thêm vào đơn +</button>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="popup-id">
+    <input type="hidden" id="popup-price">
+    <input type="hidden" id="popup-cat">
+</div>
+
+<!-- ── POS Shell ── -->
+<div class="pos-shell">
+
+    <!-- LEFT: Menu -->
+    <div class="pos-menu-panel">
+        <div style="position:relative;margin-bottom:12px;">
+            <input type="text" class="form-input" id="search"
+                   placeholder="Tìm món..." autocomplete="off"
+                   oninput="applyFilter()" style="padding-left:32px;">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);
+                         color:var(--gray-300);font-size:16px;pointer-events:none;">⌕</span>
+        </div>
+
+        <div class="cat-tabs" id="cat-tabs">
+            <button class="cat-tab active" data-cat="" onclick="setCat(this,'')">Tất cả</button>
+            @foreach (var cat in categories)
+            {
+                <button class="cat-tab" data-cat="@cat.Name"
+                        onclick="setCat(this,'@cat.Name')">@cat.Name</button>
+            }
+        </div>
+
+        <div class="product-grid-wrapper" id="product-grid-wrapper">
+            <div class="product-grid" id="product-grid">
+                @foreach (var p in products)
+                {
+                    <div class="product-card"
+                         data-id="@p.ProductId"
+                         data-name="@p.Name"
+                         data-cat="@p.Category.Name"
+                         onclick="openPopup(@p.ProductId,'@Html.Raw(p.Name.Replace("'","\\'"))',@p.Price,'@p.Category.Name')">
+                        <div class="product-cat-tag">@p.Category.Name</div>
+                        <div class="product-name">@p.Name</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+                            <div class="product-price">@p.Price.ToString("N0") ₫</div>
+                            <button class="product-add-btn"
+                                    onclick="event.stopPropagation();openPopup(@p.ProductId,'@Html.Raw(p.Name.Replace("'","\\'"))',@p.Price,'@p.Category.Name')">+</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Cart -->
+    <div class="pos-cart-panel">
+        <div class="cart-header">
+            <span class="cart-title">Đơn hàng</span>
+            <span class="cart-count" id="cart-count">0 món</span>
+        </div>
+
+        <div class="cart-table-row">
+            <span class="cart-table-label">Bàn:</span>
+            <div class="table-chips" id="table-chips">
+                @foreach (var t in tables)
+                {
+                    <button class="table-chip @(t == firstTable ? "selected" : "")"
+                            data-id="@t.TableId"
+                            onclick="selectTable(this,@t.TableId)">
+                        @t.TableNumber
+                        @if (t.Status == "Occupied")
+                        {
+                            <span style="color:var(--amber-400);">●</span>
+                        }
+                    </button>
+                }
+                <button class="table-chip" data-id="0"
+                        onclick="selectTable(this,0)">Mang về</button>
+            </div>
+        </div>
+
+        <div class="cart-items" id="cart-items">
+            <div class="cart-empty">Chưa có món nào</div>
+        </div>
+
+        <div class="cart-note">
+            <textarea id="order-note" rows="2"
+                      placeholder="Ghi chú: không đường, ít đá..."></textarea>
+        </div>
+
+        <div class="cart-summary">
+            <div class="summary-row">
+                <span>Tạm tính</span>
+                <span class="val" id="sub-total">0 ₫</span>
+            </div>
+            <div class="summary-row">
+                <span>VAT (10%)</span>
+                <span class="val" id="vat-amount">0 ₫</span>
+            </div>
+            <div class="summary-total">
+                <span>Tổng cộng</span>
+                <span class="val" id="total-amount">0 ₫</span>
+            </div>
+        </div>
+
+        <div class="cart-actions">
+            <button class="btn btn-secondary btn-sm" onclick="clearCart()">Xoá</button>
+            <button class="btn btn-primary btn-full" id="submit-btn" onclick="submitOrder()">
+                Xác nhận đơn →
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+<style>
+.topping-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--gray-50);
+    border-radius: var(--radius-sm);
+    transition: background 0.1s;
+}
+.topping-row:last-child { border-bottom: none; }
+.topping-row:hover      { background: var(--gray-50); padding: 9px 8px; margin: 0 -8px; }
+.topping-row.selected   { background: var(--teal-50); padding: 9px 8px; margin: 0 -8px; }
+</style>
+}
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script>
+/* ── State ── */
+let cart = [];
+let selectedTableId = @(firstTable?.TableId ?? 0);
+let activeCat = '';
+let _pid = 0, _pprice = 0, _pname = '', _pcat = '';
+
+const af = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+function fmtVND(n) {
+    return new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫';
+}
+
+/* ══ Popup ══════════════════════════════════ */
+function openPopup(id, name, price, cat) {
+    _pid = id; _pprice = price; _pname = name; _pcat = cat;
+    document.getElementById('popup-name').textContent       = name;
+    document.getElementById('popup-base-price').textContent = fmtVND(price);
+
+    // Reset
+    document.querySelectorAll('.topping-cb').forEach(cb => {
+        cb.checked = false;
+        cb.closest('.topping-row').classList.remove('selected');
+        cb.closest('.topping-row').querySelector('.topping-qty-ctrl').style.display = 'none';
+        cb.closest('.topping-row').querySelector('.topping-qty').value = 1;
+    });
+
+    recalcPopupTotal();
+    document.getElementById('topping-popup').style.display = 'flex';
+}
+
+function closePopup() {
+    document.getElementById('topping-popup').style.display = 'none';
+}
+
+function onToppingChange(cb) {
+    const row = cb.closest('.topping-row');
+    const qtyCtrl = row.querySelector('.topping-qty-ctrl');
+    if (cb.checked) {
+        qtyCtrl.style.display = 'flex';
+        row.classList.add('selected');
+    } else {
+        qtyCtrl.style.display = 'none';
+        row.querySelector('.topping-qty').value = 1;
+        row.classList.remove('selected');
+    }
+    recalcPopupTotal();
+}
+
+function adjToppingQty(btn, delta) {
+    const input = btn.closest('.topping-qty-ctrl').querySelector('.topping-qty');
+    input.value = Math.max(1, Math.min(9, parseInt(input.value) + delta));
+    recalcPopupTotal();
+}
+
+function recalcPopupTotal() {
+    let extra = 0;
+    document.querySelectorAll('.topping-cb:checked').forEach(cb => {
+        const qty = parseInt(cb.closest('.topping-row').querySelector('.topping-qty').value) || 1;
+        extra += parseFloat(cb.dataset.price) * qty;
+    });
+    document.getElementById('popup-total').textContent = fmtVND(_pprice + extra);
+}
+
+function confirmAdd() {
+    const toppings = [];
+    document.querySelectorAll('.topping-cb:checked').forEach(cb => {
+        const qty = parseInt(cb.closest('.topping-row').querySelector('.topping-qty').value) || 1;
+        toppings.push({ toppingId: parseInt(cb.value), name: cb.dataset.name, price: parseFloat(cb.dataset.price), quantity: qty });
+    });
+
+    const toppingExtra = toppings.reduce((s, t) => s + t.price * t.quantity, 0);
+    const toppingKey   = toppings.map(t => t.toppingId + '_' + t.quantity).join('|');
+    const ex = cart.find(c => c.id === _pid && c.toppingKey === toppingKey);
+
+    if (ex) { ex.qty++; }
+    else {
+        cart.push({ id: _pid, name: _pname, price: _pprice, cat: _pcat,
+                    qty: 1, toppings, toppingExtra, toppingKey });
+    }
+
+    renderCart();
+    closePopup();
+
+    const card = document.querySelector(`.product-card[data-id="${_pid}"]`);
+    if (card) { card.style.borderColor = 'var(--teal-400)'; setTimeout(() => card.style.borderColor = '', 500); }
+    showToast('+ ' + _pname, 'success');
+}
+
+/* ══ Cart ═══════════════════════════════════ */
+function changeQty(idx, delta) {
+    cart[idx].qty += delta;
+    if (cart[idx].qty <= 0) cart.splice(idx, 1);
+    renderCart();
+}
+
+function removeItem(idx) { cart.splice(idx, 1); renderCart(); }
+
+function clearCart() {
+    if (!cart.length) return;
+    if (!confirm('Xoá toàn bộ đơn?')) return;
+    cart = []; renderCart();
+}
+
+function renderCart() {
+    const el = document.getElementById('cart-items');
+    if (!cart.length) {
+        el.innerHTML = '<div class="cart-empty">Chưa có món nào</div>';
+    } else {
+        el.innerHTML = cart.map((item, idx) => {
+            const unitTotal    = (item.price + (item.toppingExtra || 0)) * item.qty;
+            const toppingHtml  = item.toppings && item.toppings.length
+                ? `<div style="font-size:10px;color:var(--teal-600);margin-top:2px;line-height:1.4;">
+                       + ${item.toppings.map(t => t.name + (t.quantity > 1 ? ' ×'+t.quantity : '')).join(', ')}
+                   </div>` : '';
+            return `
+            <div class="cart-item">
+                <div style="flex:1;min-width:0;">
+                    <div class="ci-name">${item.name}</div>
+                    ${toppingHtml}
+                </div>
+                <div class="qty-ctrl">
+                    <button class="qty-btn" onclick="changeQty(${idx},-1)">−</button>
+                    <span class="qty-num">${item.qty}</span>
+                    <button class="qty-btn" onclick="changeQty(${idx},1)">+</button>
+                </div>
+                <div class="ci-price">${fmtVND(unitTotal)}</div>
+                <button class="ci-del" onclick="removeItem(${idx})">✕</button>
+            </div>`;
+        }).join('');
+    }
+
+    const sub   = cart.reduce((s, c) => s + (c.price + (c.toppingExtra || 0)) * c.qty, 0);
+    const vat   = Math.round(sub * 0.1);
+    const total = sub + vat;
+    const count = cart.reduce((s, c) => s + c.qty, 0);
+
+    document.getElementById('sub-total').textContent    = fmtVND(sub);
+    document.getElementById('vat-amount').textContent   = fmtVND(vat);
+    document.getElementById('total-amount').textContent = fmtVND(total);
+    document.getElementById('cart-count').textContent   = count + ' món';
+}
+
+/* ══ Table / Filter ════════════════════════ */
+function selectTable(el, id) {
+    document.querySelectorAll('.table-chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedTableId = id;
+}
+
+function setCat(el, cat) {
+    activeCat = cat;
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    applyFilter();
+}
+
+function applyFilter() {
+    const q = (document.getElementById('search').value || '').toLowerCase();
+    document.querySelectorAll('.product-card').forEach(card => {
+        const matchCat  = !activeCat || card.dataset.cat === activeCat;
+        const matchName = !q || card.dataset.name.toLowerCase().includes(q);
+        card.style.display = (matchCat && matchName) ? '' : 'none';
+    });
+}
+
+/* ══ Submit ═════════════════════════════════ */
+async function submitOrder() {
+    if (!cart.length) { showToast('Chưa có món!', 'warning'); return; }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true; btn.textContent = 'Đang gửi...';
+
+    try {
+        const payload = JSON.stringify({
+            tableId: selectedTableId > 0 ? selectedTableId : null,
+            note:    document.getElementById('order-note').value || null,
+            items:   cart.map(c => ({
+                productId: c.id,
+                quantity:  c.qty,
+                note:      null,
+                toppings:  (c.toppings || []).map(t => ({ toppingId: t.toppingId, quantity: t.quantity }))
+            }))
+        });
+
+        const formData = new FormData();
+        formData.append('orderJson', payload);
+        formData.append('__RequestVerificationToken', af);
+
+        const res = await fetch('/Order/Create', { method: 'POST', body: formData });
+
+        if (!res.ok) { showToast('Lỗi ' + res.status, 'error'); return; }
+
+        const data = await res.json();
+        showToast(`✓ Đơn #${data.orderId} — ${fmtVND(data.total)}`, 'success');
+        cart = []; renderCart();
+        document.getElementById('order-note').value = '';
+
+    } catch (err) {
+        console.error(err);
+        showToast('Gửi đơn thất bại!', 'error');
+    } finally {
+        btn.disabled = false; btn.textContent = 'Xác nhận đơn →';
+    }
+}
+
+/* ══ SignalR ════════════════════════════════ */
+initSignalR('pos', {
+    OrderStatusChanged: (update) => {
+        const map  = { InProgress:'Đang pha', Completed:'Hoàn thành', Cancelled:'Đã huỷ' };
+        const type = update.newStatus === 'Completed' ? 'success' : update.newStatus === 'Cancelled' ? 'error' : 'info';
+        showToast(`${update.tableName} — Đơn #${update.orderId}: ${map[update.newStatus] || update.newStatus}`, type);
+    }
+});
+
+// Đóng popup khi click ngoài
+document.getElementById('topping-popup').addEventListener('click', function(e) {
+    if (e.target === this) closePopup();
+});
+
+renderCart();
+</script>
+}

@@ -1,0 +1,143 @@
+@using H2DProject.Models
+@model Order
+@{ ViewData["Title"] = "Hoá đơn #" + Model.OrderId; }
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<div style="max-width:400px;margin:0 auto;">
+    <div style="display:flex;gap:10px;margin-bottom:16px;justify-content:flex-end;">
+        <button class="btn btn-secondary btn-sm" id="print-btn"
+                onclick="doPrint(@Model.OrderId)">
+            🖨 In hóa đơn
+        </button>
+        <a asp-action="Index" class="btn btn-primary btn-sm">+ Đơn mới</a>
+    </div>
+
+    <div class="receipt-card">
+        <div class="receipt-header">
+            <div style="font-size:28px;margin-bottom:6px;">☕</div>
+            <h1>H2D Cafe</h1>
+            <p>Hoá đơn thanh toán</p>
+        </div>
+
+        <div class="receipt-meta">
+            <div class="receipt-meta-item">
+                <div class="label">Số đơn</div><div class="value">#@Model.OrderId</div>
+            </div>
+            <div class="receipt-meta-item">
+                <div class="label">Bàn</div><div class="value">@Model.Table.TableNumber</div>
+            </div>
+            <div class="receipt-meta-item">
+                <div class="label">Thời gian</div>
+                <div class="value">@Model.CreatedAt?.ToString("HH:mm dd/MM/yyyy")</div>
+            </div>
+            <div class="receipt-meta-item">
+                <div class="label">Thanh toán</div>
+                <div class="value">@(Model.PaymentMethod ?? "—")</div>
+            </div>
+            <div class="receipt-meta-item">
+                <div class="label">Nhân viên</div><div class="value">@Model.Staff.FullName</div>
+            </div>
+            <div class="receipt-meta-item">
+                <div class="label">Trạng thái</div>
+                <div class="value">
+                    <span class="badge badge-@Model.Status.ToLower()">
+                        @(Model.Status=="Completed"?"Hoàn thành":Model.Status)
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="receipt-items">
+            @foreach (var item in Model.OrderItems)
+            {
+                <div class="receipt-item">
+                    <span>
+                        <span class="ri-qty">×@item.Quantity</span> @item.Product.Name
+                        @if (!string.IsNullOrEmpty(item.Note))
+                        { <span style="font-size:11px;color:var(--gray-300);"> (@item.Note)</span> }
+                    </span>
+                    <span class="ri-price">@((item.Quantity * item.UnitPrice).ToString("N0")) ₫</span>
+                </div>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Note))
+        {
+            <div style="margin:0 20px 10px;font-size:12px;color:var(--gray-400);font-style:italic;">
+                Ghi chú: @Model.Note
+            </div>
+        }
+
+        <div class="receipt-totals">
+            <div class="receipt-row">
+                <span class="label">Tạm tính</span>
+                <span class="value">@Model.SubTotal?.ToString("N0") ₫</span>
+            </div>
+            <div class="receipt-row">
+                <span class="label">VAT (10%)</span>
+                <span class="value">@Model.Vatamount?.ToString("N0") ₫</span>
+            </div>
+            @if (Model.Discount > 0)
+            {
+                <div class="receipt-row" style="color:var(--red-600);">
+                    <span class="label">Giảm giá</span>
+                    <span class="value">-@Model.Discount?.ToString("N0") ₫</span>
+                </div>
+            }
+            <div class="receipt-total-row">
+                <span>TỔNG CỘNG</span>
+                <span class="value">@Model.TotalAmount?.ToString("N0") ₫</span>
+            </div>
+        </div>
+
+        <div class="receipt-footer">
+            Cảm ơn quý khách! Hẹn gặp lại ☕<br>
+            <span style="font-size:10px;">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function doPrint(orderId) {
+            const btn = document.getElementById('print-btn');
+            btn.disabled    = true;
+            btn.textContent = '⏳ Đang in...';
+
+            try {
+                const res = await fetch('/Order/Print?id=' + orderId, {
+                    method: 'GET'
+                });
+
+                console.log('Print status:', res.status);
+
+                if (res.ok) {
+                    btn.textContent       = '✓ Đã in!';
+                    btn.style.background  = 'var(--teal-50)';
+                    btn.style.color       = 'var(--teal-700)';
+                    btn.style.borderColor = 'var(--teal-400)';
+                    setTimeout(() => {
+                        btn.disabled      = false;
+                        btn.textContent   = '🖨 In hóa đơn';
+                        btn.style         = '';
+                    }, 3000);
+                } else {
+                    const text = await res.text();
+                    console.error('Error:', text);
+                    alert('Lỗi in: ' + res.status + ' — ' + text);
+                    btn.disabled    = false;
+                    btn.textContent = '🖨 In hóa đơn';
+                }
+            } catch (err) {
+                console.error('Catch:', err);
+                alert('Không kết nối được máy in!');
+                btn.disabled    = false;
+                btn.textContent = '🖨 In hóa đơn';
+            }
+        }
+
+        initSignalR('pos', {});
+    </script>
+}

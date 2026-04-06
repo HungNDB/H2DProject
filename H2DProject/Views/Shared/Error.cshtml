@@ -1,0 +1,13 @@
+@* Error.cshtml *@
+@{ ViewData["Title"] = "Lỗi"; Layout = "_Layout"; }
+
+<div style="max-width:480px; margin:4rem auto; text-align:center;">
+    <div style="font-size:48px; margin-bottom:16px;">⚠</div>
+    <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Đã xảy ra lỗi</div>
+    <div style="font-size:13px; color:var(--gray-500); margin-bottom:24px;">
+        Vui lòng thử lại hoặc liên hệ quản lý.
+    </div>
+    <a asp-controller="Order" asp-action="Index" class="btn btn-primary">
+        ← Về trang chính
+    </a>
+</div>

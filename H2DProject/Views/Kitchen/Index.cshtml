@@ -1,0 +1,250 @@
+@using H2DProject.Models
+@model List<Order>
+@{ ViewData["Title"] = "Màn hình bếp"; }
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<div class="kitchen-header">
+    <div class="kitchen-stats">
+        <div class="kstat"><div class="kstat-num pending"    id="s-pending">0</div><div class="kstat-label">Chờ</div></div>
+        <div class="kstat"><div class="kstat-num inprogress" id="s-inprog">0</div><div class="kstat-label">Đang pha</div></div>
+        <div class="kstat"><div class="kstat-num done"       id="s-done">0</div><div class="kstat-label">Xong</div></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="cat-tab active" data-f="active"     onclick="setFilter(this,'active')">Đang hoạt động</button>
+        <button class="cat-tab"        data-f="Pending"    onclick="setFilter(this,'Pending')">Chờ</button>
+        <button class="cat-tab"        data-f="InProgress" onclick="setFilter(this,'InProgress')">Đang pha</button>
+        <button class="cat-tab"        data-f="Completed"  onclick="setFilter(this,'Completed')">Xong</button>
+    </div>
+</div>
+
+<div class="kitchen-grid" id="kitchen-grid">
+    @foreach (var order in Model)
+    {
+        <div class="kitchen-card status-@order.Status.ToLower()"
+             id="kcard-@order.OrderId"
+             data-status="@order.Status"
+             data-created="@order.CreatedAt?.ToString("O")">
+
+            <div class="kcard-header">
+                <div>
+                    <div class="kcard-table">@order.Table.TableNumber</div>
+                    <div class="kcard-id">Đơn #@order.OrderId</div>
+                </div>
+                <div style="text-align:right">
+                    <span class="badge badge-@order.Status.ToLower()">
+                        @(order.Status=="Pending"?"Chờ":order.Status=="InProgress"?"Đang pha":"Xong")
+                    </span>
+                    <div class="timer-badge" id="timer-@order.OrderId">--</div>
+                </div>
+            </div>
+
+            <div class="kcard-items">
+                @foreach (var item in order.OrderItems)
+                {
+                    <div class="kcard-item">
+                        <span class="kitem-qty">×@item.Quantity</span>
+                        <span class="kitem-name">@item.Product.Name</span>
+                        @if (!string.IsNullOrEmpty(item.Note))
+                        { <span class="kitem-note">[@item.Note]</span> }
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(order.Note))
+            { <div class="kcard-note">📝 @order.Note</div> }
+
+            <div class="kcard-actions" id="kactions-@order.OrderId">
+                @if (order.Status == "Pending")
+                {
+                    <button class="btn btn-primary btn-sm btn-full"
+                            onclick="updateStatus(@order.OrderId,'InProgress')">Bắt đầu pha →</button>
+                }
+                else if (order.Status == "InProgress")
+                {
+                    <button class="btn btn-sm btn-full"
+                            style="background:var(--teal-50);color:var(--teal-700);border:1px solid var(--teal-400);"
+                            onclick="updateStatus(@order.OrderId,'Completed')">Hoàn thành ✓</button>
+                    <button class="btn btn-danger btn-sm"
+                            onclick="updateStatus(@order.OrderId,'Cancelled')">Huỷ</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@Html.AntiForgeryToken()
+@section Scripts {
+<script>
+let currentFilter = 'active';
+const af = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+</script>
+@Html.AntiForgeryToken()
+<script>
+const afToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+function setFilter(el, f) {
+    currentFilter = f;
+    document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    applyFilter();
+}
+
+function applyFilter() {
+    document.querySelectorAll('.kitchen-card').forEach(card => {
+        const s = card.dataset.status;
+        const show = currentFilter === 'active' ? (s === 'Pending' || s === 'InProgress')
+                   : s === currentFilter;
+        card.style.display = show ? '' : 'none';
+    });
+    updateStats();
+}
+
+function updateStats() {
+    let p=0, i=0, d=0;
+    document.querySelectorAll('.kitchen-card').forEach(c => {
+        if (c.dataset.status==='Pending')    p++;
+        if (c.dataset.status==='InProgress') i++;
+        if (c.dataset.status==='Completed')  d++;
+    });
+    document.getElementById('s-pending').textContent = p;
+    document.getElementById('s-inprog').textContent  = i;
+    document.getElementById('s-done').textContent    = d;
+}
+
+function updateTimers() {
+    document.querySelectorAll('.kitchen-card').forEach(card => {
+        const el = document.getElementById('timer-' + card.id.replace('kcard-',''));
+        if (!el || !card.dataset.created) return;
+        const min = (Date.now() - new Date(card.dataset.created)) / 60000;
+        el.textContent = Math.floor(min) + ' phút';
+        el.className = 'timer-badge' + (min > 15 ? ' urgent' : min > 8 ? ' warning' : '');
+    });
+}
+setInterval(updateTimers, 30000);
+updateTimers();
+
+        async function updateStatus(orderId, status) {
+            const card = document.getElementById('kcard-' + orderId);
+            if (card) card.style.opacity = '0.6';
+
+            try {
+                const formData = new FormData();
+                formData.append('orderId', orderId);
+                formData.append('status', status);
+                formData.append('__RequestVerificationToken', afToken);
+
+                const res = await fetch('/Order/UpdateStatus', {
+                    method: 'POST',
+                    body:   formData   // ← không set Content-Type
+                });
+
+                console.log('UpdateStatus:', res.status);
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    console.error('Error:', errText);
+                    showToast('Lỗi cập nhật: ' + res.status, 'error');
+                    if (card) card.style.opacity = '1';
+                    return;
+                }
+
+                // Cập nhật UI
+                if (card) {
+                    card.dataset.status = status;
+                    card.style.opacity  = '1';
+                    card.className = `kitchen-card status-${status.toLowerCase()}`;
+
+                    const badge  = card.querySelector('.badge');
+                    const map    = {
+                        Pending:    'Chờ',
+                        InProgress: 'Đang pha',
+                        Completed:  'Xong',
+                        Cancelled:  'Huỷ'
+                    };
+                    if (badge) {
+                        badge.textContent = map[status];
+                        badge.className   = `badge badge-${status.toLowerCase()}`;
+                    }
+
+                    const actions = document.getElementById('kactions-' + orderId);
+                    if (actions) {
+                        if (status === 'InProgress') {
+                            actions.innerHTML = `
+                                <button class="btn btn-sm btn-full"
+                                        style="background:var(--teal-50);color:var(--teal-700);border:1px solid var(--teal-400);"
+                                        onclick="updateStatus(${orderId},'Completed')">Hoàn thành ✓</button>
+                                <button class="btn btn-danger btn-sm"
+                                        onclick="updateStatus(${orderId},'Cancelled')">Huỷ</button>`;
+                        } else {
+                            actions.innerHTML = '';
+                        }
+                    }
+                }
+
+                applyFilter();
+                updateStats();
+
+            } catch (err) {
+                console.error('Catch:', err);
+                showToast('Lỗi cập nhật!', 'error');
+                if (card) card.style.opacity = '1';
+            }
+        }
+
+function playBeep() {
+    try {
+        const ctx = new AudioContext();
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880;
+        g.gain.setValueAtTime(0.3, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        o.start(); o.stop(ctx.currentTime + 0.4);
+    } catch {}
+}
+
+initSignalR('kitchen', {
+    NewOrder: (order) => {
+        playBeep();
+        showToast(`🆕 Đơn mới — ${order.tableName} #${order.orderId}`, 'info', 5000);
+
+        const items = order.items.map(i =>
+            `<div class="kcard-item"><span class="kitem-qty">×${i.quantity}</span>
+             <span class="kitem-name">${i.productName}</span>
+             ${i.note ? `<span class="kitem-note">[${i.note}]</span>` : ''}</div>`
+        ).join('');
+
+        const html = `
+        <div class="kitchen-card status-pending" id="kcard-${order.orderId}"
+             data-status="Pending" data-created="${order.createdAt}" style="animation:cardPop .4s ease">
+            <div class="kcard-header">
+                <div><div class="kcard-table">${order.tableName}</div><div class="kcard-id">Đơn #${order.orderId}</div></div>
+                <div style="text-align:right">
+                    <span class="badge badge-pending">Chờ</span>
+                    <div class="timer-badge" id="timer-${order.orderId}">0 phút</div>
+                </div>
+            </div>
+            <div class="kcard-items">${items}</div>
+            ${order.note ? `<div class="kcard-note">📝 ${order.note}</div>` : ''}
+            <div class="kcard-actions" id="kactions-${order.orderId}">
+                <button class="btn btn-primary btn-sm btn-full"
+                        onclick="updateStatus(${order.orderId},'InProgress')">Bắt đầu pha →</button>
+            </div>
+        </div>`;
+
+        document.getElementById('kitchen-grid').insertAdjacentHTML('afterbegin', html);
+        applyFilter();
+        updateTimers();
+    },
+    OrderStatusChanged: (update) => {
+        const card = document.getElementById('kcard-' + update.orderId);
+        if (card) { card.dataset.status = update.newStatus; applyFilter(); }
+        updateStats();
+    }
+});
+
+updateStats(); applyFilter();
+</script>
+}

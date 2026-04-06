@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — H2D Cafe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="shell">
+
+        <!-- ── Sidebar ── -->
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <span class="brand-icon">☕</span>
+                <span class="brand-name">H2D Cafe</span>
+            </div>
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="sidebar-staff">
+                    <div class="staff-avatar">
+                        @(User.Identity.Name?.Substring(0, Math.Min(2, User.Identity.Name.Length)).ToUpper())
+                    </div>
+                    <div>
+                        <div class="staff-name">@User.Identity.Name</div>
+                        <div class="staff-role">@User.FindFirst("Role")?.Value</div>
+                    </div>
+                </div>
+
+                <ul class="nav-list">
+                    <li>
+                        <a asp-controller="Order" asp-action="Index"
+                           class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Order" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                            <span class="nav-icon">⊞</span> Gọi món
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Kitchen" asp-action="Index"
+                           class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Kitchen" ? "active" : "")">
+                            <span class="nav-icon">⊡</span> Màn hình bếp
+                            <span class="nav-badge" id="kitchen-badge" style="display:none">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Order" asp-action="History"
+                           class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "History" ? "active" : "")">
+                            <span class="nav-icon">≡</span> Lịch sử
+                        </a>
+                    </li>
+                </ul>
+            }
+
+            <div class="sidebar-footer">
+                <div class="conn-status">
+                    <span class="conn-dot" id="conn-dot"></span>
+                    <span id="conn-text">Chờ kết nối</span>
+                </div>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:8px;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="logout-btn">Đăng xuất</button>
+                    </form>
+                }
+            </div>
+        </nav>
+
+        <!-- ── Main ── -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">@ViewData["Title"]</div>
+                <div class="clock" id="live-clock"></div>
+            </div>
+            <div class="content-area">
+                @RenderBody()
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-stack" id="toast-stack"></div>
+
+    <!-- Bottom Navigation (chỉ hiện trên mobile) -->
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <nav class="bottom-nav" style="display:none;">
+            <a asp-controller="Order" asp-action="Index"
+               class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Order" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                <span class="nav-icon">⊞</span>
+                <span>Gọi món</span>
+            </a>
+            <a asp-controller="Kitchen" asp-action="Index"
+               class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Kitchen" ? "active" : "")">
+                <span class="nav-icon">⊡</span>
+                <span>Bếp</span>
+            </a>
+            <a asp-controller="Order" asp-action="History"
+               class="@(ViewContext.RouteData.Values["action"]?.ToString() == "History" ? "active" : "")">
+                <span class="nav-icon">≡</span>
+                <span>Lịch sử</span>
+            </a>
+            <a asp-controller="Account" asp-action="Logout"
+               onclick="event.preventDefault(); document.getElementById('mobile-logout-form').submit();">
+                <span class="nav-icon">⏻</span>
+                <span>Đăng xuất</span>
+            </a>
+        </nav>
+        <form id="mobile-logout-form" asp-controller="Account" asp-action="Logout" method="post" style="display:none;">
+            @Html.AntiForgeryToken()
+        </form>
+    }
+
+    <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/signalr-client.js"></script>
+    <script>
+        // Live clock
+        (function tick() {
+            const el = document.getElementById('live-clock');
+            if (el) el.textContent = new Date().toLocaleTimeString('vi-VN');
+            setTimeout(tick, 1000);
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
