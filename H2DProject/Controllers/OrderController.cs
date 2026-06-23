@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using H2DProject.Data;
 using H2DProject.Hubs;
-using H2DProject.Models;
 using H2DProject.Models.ViewModels;
 using H2DProject.Services;
 
@@ -13,8 +12,8 @@ namespace H2DProject.Controllers;
 [Authorize]
 public class OrderController : Controller
 {
-    private readonly H2DDbContext  _db;
-    private readonly OrderService  _orderService;
+    private readonly H2DDbContext _db;
+    private readonly OrderService _orderService;
     private readonly IHubContext<OrderHub> _hub;
     private readonly PrintService _printService;
 
@@ -161,7 +160,7 @@ public class OrderController : Controller
 
         var update = new OrderStatusUpdate
         {
-            OrderId   = orderId,
+            OrderId = orderId,
             NewStatus = "Completed",
             TableName = order.Table.TableNumber
         };
@@ -179,10 +178,158 @@ public class OrderController : Controller
             .Include(o => o.Table)
             .Include(o => o.Staff)
             .Include(o => o.OrderItems).ThenInclude(oi => oi.Product)
+            .Include(o => o.OrderItems).ThenInclude(oi => oi.OrderItemToppings).ThenInclude(t => t.Topping)
             .FirstOrDefaultAsync(o => o.OrderId == id);
 
         if (order == null) return NotFound();
+
+        ViewBag.Banks = await _db.BankAccounts
+            .Where(b => b.IsActive)
+            .OrderBy(b => b.DisplayOrder)
+            .ToListAsync();
+
+        ViewBag.Products = await _db.Products
+            .Where(p => (bool)p.IsAvailable)
+            .Include(p => p.Category)
+            .OrderBy(p => p.Category.DisplayOrder)
+            .ThenBy(p => p.Name)
+            .ToListAsync();
+
+        ViewBag.Toppings = await _db.Toppings
+            .Where(t => t.IsAvailable == true)
+            .OrderBy(t => t.Name)
+            .ToListAsync();
+
         return View(order);
+    }
+
+    // ── POST /Order/AddItem ───────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddItem([FromForm] int orderId, [FromForm] string itemJson)
+    {
+        try
+        {
+            var order = await _db.Orders
+                .Include(o => o.Table)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+            if (order == null) return NotFound();
+            if (order.Status == "Completed" || order.Status == "Cancelled")
+                return BadRequest("Đơn đã hoàn thành hoặc đã huỷ");
+
+            var input = System.Text.Json.JsonSerializer.Deserialize<OrderItemInput>(
+                itemJson,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (input == null) return BadRequest("Invalid data");
+
+            var product = await _db.Products.FindAsync(input.ProductId)
+                          ?? throw new Exception($"Product {input.ProductId} not found");
+
+            decimal toppingTotal = 0m;
+            var itemToppings = new List<OrderItemTopping>();
+
+            foreach (var ti in input.Toppings ?? new List<ToppingInput>())
+            {
+                var topping = await _db.Toppings.FindAsync(ti.ToppingId);
+                if (topping == null) continue;
+                itemToppings.Add(new OrderItemTopping
+                {
+                    ToppingId = ti.ToppingId,
+                    Quantity = ti.Quantity,
+                    UnitPrice = topping.Price,
+                });
+                toppingTotal += topping.Price * ti.Quantity;
+            }
+
+            var orderItem = new OrderItem
+            {
+                OrderId = orderId,
+                ProductId = input.ProductId,
+                Quantity = 1,
+                UnitPrice = product.Price,
+                Note = input.Note,
+                OrderItemToppings = itemToppings
+            };
+            _db.OrderItems.Add(orderItem);
+
+            order.SubTotal = (order.SubTotal ?? 0m) + product.Price + toppingTotal;
+            order.TotalAmount = (order.SubTotal ?? 0m)
+                              - (order.Discount ?? 0m)
+                              + (order.Vatamount ?? 0m);
+
+            await _db.SaveChangesAsync();
+
+            await _hub.Clients.Group("kitchen").SendAsync("ItemAdded", new
+            {
+                orderId = orderId,
+                tableName = order.Table?.TableNumber ?? "",
+                itemName = product.Name
+            });
+
+            return Json(new
+            {
+                success = true,
+                orderItemId = orderItem.OrderItemId,
+                newTotal = order.TotalAmount,
+                productName = product.Name,
+                unitPrice = product.Price,
+                toppingTotal = toppingTotal
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    // ── POST /Order/RemoveItem ────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveItem([FromForm] int orderItemId)
+    {
+        try
+        {
+            var item = await _db.OrderItems
+                .Include(i => i.OrderItemToppings)
+                .Include(i => i.Product)
+                .Include(i => i.Order).ThenInclude(o => o.Table)
+                .FirstOrDefaultAsync(i => i.OrderItemId == orderItemId);
+
+            if (item == null) return NotFound();
+
+            var order = item.Order;
+            if (order.Status == "Completed" || order.Status == "Cancelled")
+                return BadRequest("Đơn đã hoàn thành hoặc đã huỷ");
+
+            decimal toppingTotal = item.OrderItemToppings.Sum(t => t.UnitPrice * t.Quantity);
+            decimal itemTotal = (item.UnitPrice * item.Quantity)
+                                 + toppingTotal
+                                 - (item?.DiscountAmount ?? 0m);
+
+            _db.OrderItemToppings.RemoveRange(item.OrderItemToppings);
+            _db.OrderItems.Remove(item);
+
+            order.SubTotal = Math.Max(0m, (order.SubTotal ?? 0m) - itemTotal);
+            order.TotalAmount = Math.Max(0m, (order.SubTotal ?? 0m)
+                                           - (order.Discount ?? 0m)
+                                           + (order.Vatamount ?? 0m));
+
+            await _db.SaveChangesAsync();
+
+            await _hub.Clients.Group("kitchen").SendAsync("ItemRemoved", new
+            {
+                orderId = order.OrderId,
+                tableName = order.Table?.TableNumber ?? "",
+                itemName = item.Product?.Name ?? ""
+            });
+
+            return Json(new { success = true, newTotal = order.TotalAmount });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
     }
 
     // ── GET /Order/History ───────────────────
@@ -194,16 +341,16 @@ public class OrderController : Controller
             .AsQueryable();
 
         var fromDate = from ?? DateTime.Today;
-        var toDate   = to   ?? DateTime.Today;
+        var toDate = to ?? DateTime.Today;
 
         query = query.Where(o => o.CreatedAt >= fromDate
-                              && o.CreatedAt <  toDate.AddDays(1));
+                              && o.CreatedAt < toDate.AddDays(1));
 
         if (!string.IsNullOrEmpty(status))
             query = query.Where(o => o.Status == status);
 
-        ViewBag.From   = fromDate.ToString("yyyy-MM-dd");
-        ViewBag.To     = toDate.ToString("yyyy-MM-dd");
+        ViewBag.From = fromDate.ToString("yyyy-MM-dd");
+        ViewBag.To = toDate.ToString("yyyy-MM-dd");
         ViewBag.Status = status;
         ViewBag.Revenue = await query
             .Where(o => o.Status == "Completed")
@@ -242,4 +389,17 @@ public class OrderController : Controller
             return Content($"{{\"error\":\"{ex.Message}\"}}", "application/json");
         }
     }
+}
+
+public class OrderItemInput
+{
+    public int ProductId { get; set; }
+    public string? Note { get; set; }
+    public List<ToppingInput> Toppings { get; set; } = new List<ToppingInput>();
+}
+
+public class ToppingInput
+{
+    public int ToppingId { get; set; }
+    public int Quantity { get; set; }
 }

@@ -29,7 +29,7 @@
 
             <div class="kcard-header">
                 <div>
-                    <div class="kcard-table">@order.Table.TableNumber</div>
+                    <div class="kcard-table">@(order.Table?.TableNumber ?? "—")</div>
                     <div class="kcard-id">Đơn #@order.OrderId</div>
                 </div>
                 <div style="text-align:right">
@@ -43,11 +43,29 @@
             <div class="kcard-items">
                 @foreach (var item in order.OrderItems)
                 {
-                    <div class="kcard-item">
-                        <span class="kitem-qty">×@item.Quantity</span>
-                        <span class="kitem-name">@item.Product.Name</span>
-                        @if (!string.IsNullOrEmpty(item.Note))
-                        { <span class="kitem-note">[@item.Note]</span> }
+                    <div style="margin-bottom:10px; border-bottom:1px dashed #e5e7eb; padding-bottom:8px;">
+
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span class="kitem-qty">×@item.Quantity</span>
+                            <span class="kitem-name">@(item.Product?.Name ?? "—")</span>
+                            @if (!string.IsNullOrEmpty(item.Note))
+                            {
+                                <span class="kitem-note">[@item.Note]</span>
+                            }
+                        </div>
+
+                        @if (item.OrderItemToppings != null && item.OrderItemToppings.Any())
+                        {
+                            <div style="display:flex; flex-direction:column; margin-top:4px; padding-left:28px; gap:2px;">
+                                @foreach (var topping in item.OrderItemToppings)
+                                {
+                                    <span style="color:#0d9488; font-size:0.82em; font-weight:500; display:block;">
+                                        +@topping.Quantity @(topping.Topping?.Name ?? "—")
+                                    </span>
+                                }
+                            </div>
+                        }
+
                     </div>
                 }
             </div>
@@ -210,11 +228,20 @@ initSignalR('kitchen', {
         playBeep();
         showToast(`🆕 Đơn mới — ${order.tableName} #${order.orderId}`, 'info', 5000);
 
-        const items = order.items.map(i =>
-            `<div class="kcard-item"><span class="kitem-qty">×${i.quantity}</span>
-             <span class="kitem-name">${i.productName}</span>
-             ${i.note ? `<span class="kitem-note">[${i.note}]</span>` : ''}</div>`
-        ).join('');
+        const items = order.items.map(i => {
+            const toppings = (i.toppings || []).map(t =>
+                `<div class="kitem-topping">
+                    <span class="kitem-qty">+${t.quantity}</span>
+                    <span class="kitem-name" style="color:var(--teal-600);font-size:0.85em;">${t.name}</span>
+                 </div>`
+            ).join('');
+            return `<div class="kcard-item">
+                <span class="kitem-qty">×${i.quantity}</span>
+                <span class="kitem-name">${i.productName}</span>
+                ${toppings}
+                ${i.note ? `<span class="kitem-note">[${i.note}]</span>` : ''}
+            </div>`;
+        }).join('');
 
         const html = `
         <div class="kitchen-card status-pending" id="kcard-${order.orderId}"

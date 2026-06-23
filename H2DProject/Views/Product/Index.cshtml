@@ -1,0 +1,494 @@
+@using H2DProject.Models
+@model List<Product>
+@{
+    ViewData["Title"] = "Quản lý sản phẩm";
+}
+
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <style>
+        /* ── Filter bar ── */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+
+        .filter-search-wrap {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+            .filter-search-wrap svg {
+                position: absolute;
+                left: 11px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--gray-400);
+                pointer-events: none;
+            }
+
+            .filter-search-wrap input {
+                width: 100%;
+                padding: 9px 12px 9px 36px;
+                border: 1.5px solid var(--gray-200);
+                border-radius: 8px;
+                font-size: 0.9rem;
+                background: var(--gray-50);
+                transition: border-color .2s, background .2s, box-shadow .2s;
+                box-sizing: border-box;
+            }
+
+                .filter-search-wrap input:focus {
+                    outline: none;
+                    border-color: var(--teal-400);
+                    background: white;
+                    box-shadow: 0 0 0 3px rgba(20,184,166,.1);
+                }
+
+        .filter-select {
+            padding: 9px 12px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.88rem;
+            background: var(--gray-50);
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: border-color .2s;
+            min-width: 140px;
+        }
+
+            .filter-select:focus {
+                outline: none;
+                border-color: var(--teal-400);
+            }
+
+            .filter-select.active {
+                border-color: var(--teal-400);
+                background: var(--teal-50);
+                color: var(--teal-700);
+                font-weight: 500;
+            }
+
+        .filter-clear {
+            font-size: 0.82rem;
+            color: var(--gray-400);
+            text-decoration: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            transition: color .15s, background .15s;
+        }
+
+            .filter-clear:hover {
+                color: var(--gray-600);
+                background: var(--gray-100);
+            }
+
+        .filter-count {
+            font-size: 0.82rem;
+            color: var(--gray-400);
+            white-space: nowrap;
+            margin-left: auto;
+        }
+
+            .filter-count span {
+                font-weight: 700;
+                color: var(--teal-600);
+            }
+
+        /* ── Table ── */
+        .prod-table-wrap {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+
+        .prod-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .prod-table thead tr {
+                background: var(--gray-50);
+                border-bottom: 1px solid var(--gray-200);
+            }
+
+            .prod-table th {
+                padding: 11px 16px;
+                text-align: left;
+                font-size: 0.75rem;
+                font-weight: 700;
+                color: var(--gray-400);
+                text-transform: uppercase;
+                letter-spacing: .06em;
+                white-space: nowrap;
+            }
+
+                .prod-table th.right {
+                    text-align: right;
+                }
+
+                .prod-table th.center {
+                    text-align: center;
+                }
+
+            .prod-table tbody tr {
+                border-bottom: 1px solid var(--gray-100);
+                transition: background .12s;
+            }
+
+                .prod-table tbody tr:last-child {
+                    border-bottom: none;
+                }
+
+                .prod-table tbody tr:hover {
+                    background: #f8fffe;
+                }
+
+            .prod-table td {
+                padding: 10px 16px;
+                vertical-align: middle;
+            }
+
+                .prod-table td.right {
+                    text-align: right;
+                }
+
+                .prod-table td.center {
+                    text-align: center;
+                }
+
+            /* highlight row khi tìm kiếm */
+            .prod-table tbody tr.search-hidden {
+                display: none;
+            }
+
+        .prod-img {
+            width: 46px;
+            height: 46px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .prod-img-placeholder {
+            width: 46px;
+            height: 46px;
+            border-radius: 8px;
+            background: var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .prod-name {
+            font-weight: 600;
+            font-size: 0.92rem;
+        }
+
+        .prod-desc {
+            font-size: 0.78rem;
+            color: var(--gray-400);
+            margin-top: 2px;
+        }
+
+        .cat-pill {
+            display: inline-block;
+            background: var(--teal-50);
+            color: var(--teal-700);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 500;
+        }
+
+        .price-val {
+            font-weight: 700;
+            color: var(--teal-700);
+            font-size: 0.92rem;
+        }
+
+        .status-btn {
+            border: none;
+            cursor: pointer;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: opacity .15s, transform .1s;
+        }
+
+            .status-btn:active {
+                transform: scale(.96);
+            }
+
+            .status-btn.on {
+                background: #dcfce7;
+                color: #16a34a;
+            }
+
+            .status-btn.off {
+                background: var(--gray-100);
+                color: var(--gray-400);
+            }
+
+        .empty-row td {
+            padding: 48px;
+            text-align: center;
+            color: var(--gray-300);
+            font-size: 0.9rem;
+        }
+    </style>
+}
+
+<!-- ── Header ── -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+    <div>
+        <h2 style="margin:0;font-size:1.35rem;font-weight:700;">Quản lý sản phẩm</h2>
+        <p style="margin:4px 0 0;color:var(--gray-400);font-size:0.85rem;" id="count-label">
+            @Model.Count sản phẩm
+        </p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <a asp-controller="Sales" asp-action="Index"
+           class="btn btn-secondary"
+           style="display:inline-flex;align-items:center;gap:6px;">
+            📊 Thống kê bán hàng
+        </a>
+        <a asp-controller="Topping" asp-action="Index"
+           class="btn btn-secondary"
+           style="display:inline-flex;align-items:center;gap:6px;">
+            🧋 Topping
+        </a>
+        <a asp-action="Create" class="btn btn-primary">+ Thêm sản phẩm</a>
+    </div>
+</div>
+
+<!-- ── Alert ── -->
+@if (TempData["Success"] != null)
+{
+    <div style="background:var(--teal-50);border:1px solid var(--teal-400);color:var(--teal-700);
+                    padding:11px 16px;border-radius:8px;margin-bottom:14px;font-size:0.9rem;">
+        ✓ @TempData["Success"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div style="background:#fef2f2;border:1px solid #fca5a5;color:#dc2626;
+                    padding:11px 16px;border-radius:8px;margin-bottom:14px;font-size:0.9rem;">
+        ⚠ @TempData["Error"]
+    </div>
+}
+
+<!-- ── Filter bar ── -->
+<div class="filter-bar">
+
+    <!-- Search live -->
+    <div class="filter-search-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input type="text" id="live-search"
+               placeholder="Tìm tên sản phẩm..."
+               value="@ViewBag.Search"
+               oninput="liveFilter()" />
+    </div>
+
+    <!-- Category filter (server-side) -->
+    <select id="cat-filter" class="filter-select @(ViewBag.CategoryId != null ? "active" : "")"
+            onchange="serverFilter()">
+        <option value="">Tất cả danh mục</option>
+        @foreach (var cat in (List<Category>)ViewBag.Categories)
+        {
+            <option value="@cat.CategoryId"
+                    selected="@(ViewBag.CategoryId?.ToString() == cat.CategoryId.ToString())">
+                @cat.Name
+            </option>
+        }
+    </select>
+
+    <!-- Status filter (server-side) -->
+    <select id="status-filter" class="filter-select @(ViewBag.IsAvailable != null ? "active" : "")"
+            onchange="serverFilter()">
+        <option value="">Tất cả trạng thái</option>
+        <option value="true" selected="@(ViewBag.IsAvailable?.ToString() == "True")">✓ Đang bán</option>
+        <option value="false" selected="@(ViewBag.IsAvailable?.ToString() == "False")">✗ Đã ẩn</option>
+    </select>
+
+    @if (ViewBag.CategoryId != null || ViewBag.IsAvailable != null || !string.IsNullOrEmpty(ViewBag.Search as string))
+    {
+        <a href="/Product" class="filter-clear">✕ Xoá lọc</a>
+    }
+
+    <div class="filter-count" id="filter-count">
+        Hiển thị <span id="visible-count">@Model.Count</span> / @Model.Count
+    </div>
+</div>
+
+<!-- ── Table ── -->
+<div class="prod-table-wrap">
+    <table class="prod-table" id="prod-table">
+        <thead>
+            <tr>
+                <th style="width:60px;">Ảnh</th>
+                <th>Tên sản phẩm</th>
+                <th>Danh mục</th>
+                <th class="right">Giá</th>
+                <th class="center">Trạng thái</th>
+                <th class="center">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                <tr data-name="@p.Name.ToLower()" data-desc="@(p.Description?.ToLower() ?? "")">
+
+                    <td>
+                        @if (!string.IsNullOrEmpty(p.ImageUrl))
+                        {
+                            <img class="prod-img" src="@p.ImageUrl" alt="@p.Name" />
+                        }
+                        else
+                        {
+                            <div class="prod-img-placeholder">☕</div>
+                        }
+                    </td>
+
+                    <td>
+                        <div class="prod-name">@p.Name</div>
+                        @if (!string.IsNullOrEmpty(p.Description))
+                        {
+                            <div class="prod-desc">
+                                @(p.Description!.Length > 55 ? p.Description[..55] + "…" : p.Description)
+                            </div>
+                        }
+                    </td>
+
+                    <td>
+                        <span class="cat-pill">@p.Category?.Name</span>
+                    </td>
+
+                    <td class="right">
+                        <span class="price-val">@p.Price.ToString("N0") ₫</span>
+                    </td>
+
+                    <td class="center">
+                        <button class="status-btn @(p.IsAvailable == true ? "on" : "off")"
+                                onclick="toggleAvailable(@p.ProductId, this)">
+                            @(p.IsAvailable == true ? "✓ Đang bán" : "✗ Đã ẩn")
+                        </button>
+                    </td>
+
+                    <td class="center">
+                        <div style="display:flex;gap:6px;justify-content:center;">
+                            <a asp-action="Edit" asp-route-id="@p.ProductId"
+                               class="btn btn-secondary btn-sm">✏ Sửa</a>
+                            @{
+                                var confirmMsg = $"Xoá sản phẩm \"{p.Name}\"?";
+                            }
+                            <form asp-action="Delete" method="post" style="display:inline;"
+                                  onsubmit="return confirm(this.dataset.msg)"
+                                  data-msg="@confirmMsg">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@p.ProductId" />
+                                <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+
+            @if (!Model.Any())
+            {
+                <tr class="empty-row">
+                    <td colspan="6">Không có sản phẩm nào</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        const totalCount = @Model.Count;
+
+                /* ── Bỏ dấu tiếng Việt ── */
+        function removeDiacritics(str) {
+            return str.normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '')
+                      .replace(/đ/g, 'd').replace(/Đ/g, 'd');
+        }
+
+        /* ── Live search ── */
+        function liveFilter() {
+            const q = removeDiacritics(
+                document.getElementById('live-search').value.toLowerCase().trim()
+            );
+            const rows = document.querySelectorAll('#prod-table tbody tr[data-name]');
+            // Topping dùng: #topping-table tbody tr[data-name]
+            let visible = 0;
+
+            rows.forEach(row => {
+                const name = removeDiacritics(row.dataset.name || '');
+                const desc = removeDiacritics(row.dataset.desc || ''); // chỉ Product có desc
+                const match = !q || name.includes(q) || desc.includes(q);
+                row.classList.toggle('search-hidden', !match);
+                if (match) visible++;
+            });
+
+            document.getElementById('visible-count').textContent = visible;
+        }
+
+        /* ── Category / Status filter (server-side reload) ── */
+        function serverFilter() {
+            const cat    = document.getElementById('cat-filter').value;
+            const status = document.getElementById('status-filter').value;
+            const search = document.getElementById('live-search').value;
+
+            const params = new URLSearchParams();
+            if (search) params.set('search', search);
+            if (cat)    params.set('categoryId', cat);
+            if (status) params.set('isAvailable', status);
+
+            window.location.href = '/Product?' + params.toString();
+        }
+
+        /* ── Toggle trạng thái ── */
+        async function toggleAvailable(id, btn) {
+            btn.disabled = true;
+            try {
+                const fd = new FormData();
+                fd.append('id', id);
+                const res = await fetch('/Product/ToggleAvailable', { method: 'POST', body: fd });
+                if (!res.ok) { showToast('Lỗi: ' + res.status, 'error'); btn.disabled = false; return; }
+
+                const data = await res.json();
+                const isAvail = data.isAvailable;
+
+                btn.textContent = isAvail ? '✓ Đang bán' : '✗ Đã ẩn';
+                btn.className   = 'status-btn ' + (isAvail ? 'on' : 'off');
+            } catch {
+                showToast('Lỗi kết nối!', 'error');
+            }
+            btn.disabled = false;
+        }
+
+        /* ── Khởi động ── */
+        liveFilter();
+    </script>
+}

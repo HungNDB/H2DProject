@@ -51,6 +51,23 @@
                             <span class="nav-icon">≡</span> Lịch sử
                         </a>
                     </li>
+                    <li>
+                        <a asp-controller="Product" asp-action="Index"
+                           class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Product" ? "active" : "")">
+                            <span class="nav-icon">🛍</span> Sản phẩm
+                        </a>
+                    </li>
+                    
+                    <li>
+                        @* <a asp-controller="Expense" asp-action="Index" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Expense" ? "active" : "")">
+                            <span class="nav-icon">📊</span>
+                            <span>Chi phí</span>
+                        </a> *@
+                        <a asp-controller="FoodOrigin" asp-action="Index" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "FoodOrigin" ? "active" : "")">
+                            <span class="nav-icon">📊</span>
+                            <span>Nguồn gốc</span>
+                        </a>
+                    </li>
                 </ul>
             }
 
@@ -103,6 +120,19 @@
                class="@(ViewContext.RouteData.Values["action"]?.ToString() == "History" ? "active" : "")">
                 <span class="nav-icon">≡</span>
                 <span>Lịch sử</span>
+            </a>
+            <a asp-controller="Product" asp-action="Index"
+               class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Product" ? "active" : "")">
+                <span class="nav-icon">🛍</span>
+                <span>Sản phẩm</span>
+            </a>
+            @* <a asp-controller="Expense" asp-action="Index" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Expense" ? "active" : "")">
+                <span class="nav-icon">📊</span>
+                <span>Chi phí</span>
+            </a> *@
+            <a asp-controller="FoodOrigin" asp-action="Index" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "FoodOrigin" ? "active" : "")">
+                <span class="nav-icon">📊</span>
+                <span>Nguồn gốc</span>
             </a>
             <a asp-controller="Account" asp-action="Logout"
                onclick="event.preventDefault(); document.getElementById('mobile-logout-form').submit();">

@@ -42,3 +42,4 @@ public class CheckoutViewModel
     public int    OrderId       { get; set; }
     public string PaymentMethod { get; set; } = "Cash";
 }
+

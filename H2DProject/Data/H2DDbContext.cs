@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using H2DProject.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace H2DProject.Data;
@@ -12,9 +11,15 @@ public partial class H2DDbContext : DbContext
     {
     }
 
+    public virtual DbSet<BankAccount> BankAccounts { get; set; }
+
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<DiscountConfig> DiscountConfigs { get; set; }
+
+    public virtual DbSet<Expense> Expenses { get; set; }
+
+    public virtual DbSet<ExpenseCategory> ExpenseCategories { get; set; }
 
     public virtual DbSet<Order> Orders { get; set; }
 
@@ -29,9 +34,24 @@ public partial class H2DDbContext : DbContext
     public virtual DbSet<Table> Tables { get; set; }
 
     public virtual DbSet<Topping> Toppings { get; set; }
+    public virtual DbSet<FoodOriginLog> FoodOriginLogs { get; set; }
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Data Source=BAHUNG\\SQLEXPRESS;Initial Catalog=H2DData;Integrated Security=True;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<BankAccount>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__BankAcco__3214EC0768E8B95C");
+
+            entity.Property(e => e.AccountName).HasMaxLength(100);
+            entity.Property(e => e.AccountNumber).HasMaxLength(50);
+            entity.Property(e => e.BankId).HasMaxLength(20);
+            entity.Property(e => e.BankName).HasMaxLength(100);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
         modelBuilder.Entity<Category>(entity =>
         {
             entity.HasKey(e => e.CategoryId).HasName("PK__Categori__19093A0B82E4763B");
@@ -53,6 +73,42 @@ public partial class H2DDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Type).HasMaxLength(20);
             entity.Property(e => e.Value).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<Expense>(entity =>
+        {
+            entity.HasKey(e => e.ExpenseId).HasName("PK__Expenses__1445CFD38EED9486");
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.ExpenseDate).HasDefaultValueSql("(CONVERT([date],getdate()))");
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.Quantity).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Unit).HasMaxLength(50);
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.Category).WithMany(p => p.Expenses)
+                .HasForeignKey(d => d.CategoryId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Expenses__Catego__540C7B00");
+
+            entity.HasOne(d => d.Staff).WithMany(p => p.Expenses)
+                .HasForeignKey(d => d.StaffId)
+                .HasConstraintName("FK__Expenses__StaffI__58D1301D");
+        });
+
+        modelBuilder.Entity<ExpenseCategory>(entity =>
+        {
+            entity.HasKey(e => e.CategoryId).HasName("PK__ExpenseC__19093A0BFE1F6E4E");
+
+            entity.Property(e => e.Icon)
+                .HasMaxLength(10)
+                .HasDefaultValue("??");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.Name).HasMaxLength(100);
         });
 
         modelBuilder.Entity<Order>(entity =>
@@ -173,6 +229,32 @@ public partial class H2DDbContext : DbContext
             entity.Property(e => e.IsAvailable).HasDefaultValue(true);
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Price).HasColumnType("decimal(18, 0)");
+        });
+
+        modelBuilder.Entity<FoodOriginLog>(entity =>
+        {
+            entity.HasKey(e => e.LogId).HasName("PK_FoodOriginLogs");
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            entity.Property(e => e.EntryDate)
+                .HasDefaultValueSql("(CONVERT([date],getdate()))");
+
+            entity.Property(e => e.FoodName).HasMaxLength(200);
+            entity.Property(e => e.Unit).HasMaxLength(50);
+            entity.Property(e => e.Supplier).HasMaxLength(200);
+            entity.Property(e => e.Origin).HasMaxLength(200);
+            entity.Property(e => e.InvoiceInfo).HasMaxLength(200);
+            entity.Property(e => e.Condition).HasMaxLength(100);
+            entity.Property(e => e.ReceivedBy).HasMaxLength(100);
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.Quantity).HasColumnType("decimal(10, 2)");
+
+            entity.HasOne(d => d.Staff).WithMany()
+                .HasForeignKey(d => d.StaffId)
+                .HasConstraintName("FK_FoodOriginLogs_Staff");
         });
 
         OnModelCreatingPartial(modelBuilder);

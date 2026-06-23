@@ -1,20 +1,127 @@
-@using H2DProject.Models
+@using H2DProject.Data
 @model Order
-@{ ViewData["Title"] = "Hoá đơn #" + Model.OrderId; }
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-</head>
+@{
+    ViewData["Title"] = "Hoá đơn #" + Model.OrderId;
+    var banks = ViewBag.Banks as List<BankAccount> ?? new();
+    var products = ViewBag.Products as List<Product> ?? new();
+    var toppings = ViewBag.Toppings as List<Topping> ?? new();
+    var canEdit = Model.Status != "Completed" && Model.Status != "Cancelled";
+}
+
+@* ── Popup thêm món ── *@
+@if (canEdit && products.Any())
+{
+    <div id="add-popup" class="add-popup-overlay">
+        <div class="add-popup-box">
+
+            <div class="add-popup-hd">
+                <div>
+                    <div style="font-weight:600;font-size:15px;">Thêm món</div>
+                    <div style="font-size:11px;color:#9ca3af;">Đơn #@Model.OrderId · @(Model.Table?.TableNumber ?? "Mang về")</div>
+                </div>
+                <button class="add-popup-close" onclick="closeAddPopup()">✕</button>
+            </div>
+
+            <div class="add-popup-search" id="ap-search-bar">
+                <span class="add-search-icon">⌕</span>
+                <input type="text" id="ap-search" class="add-search-input"
+                       placeholder="Tìm món..." autocomplete="off" oninput="apSearch()">
+            </div>
+
+            <div class="add-popup-list" id="ap-list">
+                @foreach (var p in products)
+                {
+                    <div class="ap-row"
+                         data-name="@p.Name"
+                         onclick="selectProduct(@p.ProductId,'@Html.Raw(p.Name.Replace("'", "\\'"))',@p.Price)">
+                        <div class="ap-row-info">
+                            <div class="ap-row-name">@p.Name</div>
+                            <div class="ap-row-cat">@p.Category?.Name</div>
+                        </div>
+                        <div class="ap-row-price">@p.Price.ToString("N0") ₫</div>
+                        <button class="ap-row-add">+</button>
+                    </div>
+                }
+            </div>
+
+            @if (toppings.Any())
+            {
+                <div class="add-topping-section" id="ap-topping-section" style="display:none;">
+                    <div class="add-topping-hd">
+                        <span id="ap-selected-name" style="font-weight:600;font-size:13px;"></span>
+                        <span id="ap-selected-price" style="font-size:12px;color:#0d9488;"></span>
+                    </div>
+                    <div class="add-topping-label">Chọn topping (tuỳ chọn)</div>
+                    @foreach (var t in toppings)
+                    {
+                        <div class="add-topping-row">
+                            <label class="add-topping-label-wrap">
+                                <input type="checkbox" class="ap-topping-cb"
+                                       value="@t.ToppingId"
+                                       data-price="@t.Price"
+                                       data-name="@t.Name"
+                                       onchange="recalcAddTotal()">
+                                <span class="add-topping-name">@t.Name</span>
+                            </label>
+                            <span class="add-topping-price">+@t.Price.ToString("N0") ₫</span>
+                        </div>
+                    }
+                    <div class="add-topping-total">
+                        <span>Tổng món:</span>
+                        <span id="ap-total-price" style="font-weight:700;color:#0d9488;">0 ₫</span>
+                    </div>
+                    <div class="add-topping-btns">
+                        <button class="btn btn-secondary btn-sm" onclick="backToList()">← Chọn lại</button>
+                        <button class="btn btn-primary" style="flex:1;" onclick="confirmAddItem()">
+                            Thêm vào đơn +
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="add-topping-section" id="ap-topping-section" style="display:none;">
+                    <div class="add-topping-hd">
+                        <span id="ap-selected-name" style="font-weight:600;font-size:13px;"></span>
+                        <span id="ap-selected-price" style="font-size:12px;color:#0d9488;"></span>
+                    </div>
+                    <div class="add-topping-btns">
+                        <button class="btn btn-secondary btn-sm" onclick="backToList()">← Chọn lại</button>
+                        <button class="btn btn-primary" style="flex:1;" onclick="confirmAddItem()">
+                            Thêm vào đơn +
+                        </button>
+                    </div>
+                </div>
+            }
+
+        </div>
+    </div>
+}
+
+@* ── Main receipt ── *@
 <div style="max-width:400px;margin:0 auto;">
-    <div style="display:flex;gap:10px;margin-bottom:16px;justify-content:flex-end;">
-        <button class="btn btn-secondary btn-sm" id="print-btn"
-                onclick="doPrint(@Model.OrderId)">
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" id="print-btn" onclick="doPrint(@Model.OrderId)">
             🖨 In hóa đơn
         </button>
+        <a asp-controller="LabelPrint" asp-action="Index" asp-route-orderId="@Model.OrderId"
+           class="btn btn-secondary btn-sm"
+           style="border-color:#7c3aed;color:#7c3aed;background:#faf5ff;">
+            🏷 In tem
+        </a>
+        @if (canEdit)
+        {
+            <button class="btn btn-secondary btn-sm" onclick="openAddPopup()"
+                    style="border-color:#0d9488;color:#0d9488;background:#f0fdf9;">
+                + Thêm món
+            </button>
+        }
         <a asp-action="Index" class="btn btn-primary btn-sm">+ Đơn mới</a>
     </div>
 
     <div class="receipt-card">
+
         <div class="receipt-header">
             <div style="font-size:28px;margin-bottom:6px;">☕</div>
             <h1>H2D Cafe</h1>
@@ -26,7 +133,8 @@
                 <div class="label">Số đơn</div><div class="value">#@Model.OrderId</div>
             </div>
             <div class="receipt-meta-item">
-                <div class="label">Bàn</div><div class="value">@Model.Table.TableNumber</div>
+                <div class="label">Bàn</div>
+                <div class="value">@(Model.Table?.TableNumber ?? "Mang về")</div>
             </div>
             <div class="receipt-meta-item">
                 <div class="label">Thời gian</div>
@@ -37,28 +145,49 @@
                 <div class="value">@(Model.PaymentMethod ?? "—")</div>
             </div>
             <div class="receipt-meta-item">
-                <div class="label">Nhân viên</div><div class="value">@Model.Staff.FullName</div>
+                <div class="label">Nhân viên</div>
+                <div class="value">@(Model.Staff?.FullName ?? "—")</div>
             </div>
             <div class="receipt-meta-item">
                 <div class="label">Trạng thái</div>
                 <div class="value">
-                    <span class="badge badge-@Model.Status.ToLower()">
-                        @(Model.Status=="Completed"?"Hoàn thành":Model.Status)
+                    <span class="badge badge-@Model.Status?.ToLower()">
+                        @(Model.Status == "Completed" ? "Hoàn thành" : Model.Status)
                     </span>
                 </div>
             </div>
         </div>
 
-        <div class="receipt-items">
+        <div class="receipt-items" id="receipt-items">
             @foreach (var item in Model.OrderItems)
             {
-                <div class="receipt-item">
-                    <span>
-                        <span class="ri-qty">×@item.Quantity</span> @item.Product.Name
-                        @if (!string.IsNullOrEmpty(item.Note))
-                        { <span style="font-size:11px;color:var(--gray-300);"> (@item.Note)</span> }
-                    </span>
-                    <span class="ri-price">@((item.Quantity * item.UnitPrice).ToString("N0")) ₫</span>
+                <div class="ri-wrap" id="ri-@item.OrderItemId">
+                    <div class="receipt-item">
+                        <span>
+                            <span class="ri-qty">×@item.Quantity</span>
+                            @(item.Product?.Name ?? "—")
+                            @if (!string.IsNullOrEmpty(item.Note))
+                            {
+                                <span style="font-size:11px;color:var(--gray-300);"> (@item.Note)</span>
+                            }
+                        </span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span class="ri-price">@((item.Quantity * item.UnitPrice).ToString("N0")) ₫</span>
+                            @if (canEdit)
+                            {
+                                <button class="ri-del" onclick="removeItem(@item.OrderItemId,this)" title="Xoá">✕</button>
+                            }
+                        </div>
+                    </div>
+                    @foreach (var t in item.OrderItemToppings)
+                    {
+                        <div class="receipt-item" style="padding-left:20px;font-size:.88em;color:var(--gray-400);">
+                            <span><span style="color:#0d9488;">+@t.Quantity</span> @(t.Topping?.Name ?? "—")</span>
+                            <span class="ri-price" style="color:var(--gray-400);">
+                                @((t.Quantity * t.UnitPrice).ToString("N0")) ₫
+                            </span>
+                        </div>
+                    }
                 </div>
             }
         </div>
@@ -73,22 +202,50 @@
         <div class="receipt-totals">
             <div class="receipt-row">
                 <span class="label">Tạm tính</span>
-                <span class="value">@Model.SubTotal?.ToString("N0") ₫</span>
+                <span class="value" id="disp-subtotal">@Model.SubTotal?.ToString("N0") ₫</span>
             </div>
-            <div class="receipt-row">
-                <span class="label">VAT (10%)</span>
-                <span class="value">@Model.Vatamount?.ToString("N0") ₫</span>
-            </div>
-            @if (Model.Discount > 0)
+            @if ((Model.Vatamount ?? 0) > 0)
+            {
+                <div class="receipt-row">
+                    <span class="label">VAT</span>
+                    <span class="value">@Model.Vatamount?.ToString("N0") ₫</span>
+                </div>
+            }
+            @if ((Model.Discount ?? 0) > 0)
             {
                 <div class="receipt-row" style="color:var(--red-600);">
-                    <span class="label">Giảm giá</span>
-                    <span class="value">-@Model.Discount?.ToString("N0") ₫</span>
+                    <span class="label">🎁 Ưu đãi</span>
+                    <span class="value">−@Model.Discount?.ToString("N0") ₫</span>
                 </div>
             }
             <div class="receipt-total-row">
                 <span>TỔNG CỘNG</span>
-                <span class="value">@Model.TotalAmount?.ToString("N0") ₫</span>
+                <span class="value" id="disp-total">@Model.TotalAmount?.ToString("N0") ₫</span>
+            </div>
+        </div>
+
+        <div class="receipt-qr">
+            <div class="receipt-qr-label">Quét để chuyển khoản</div>
+
+            @if (banks.Any())
+            {
+                <div class="rc-bank-tabs" id="bank-tabs">
+                    @for (int i = 0; i < banks.Count; i++)
+                    {
+                        <button class="rc-bank-tab @(i == 0 ? "active" : "")"
+                                data-idx="@i" onclick="selectBank(this)">
+                            @banks[i].BankName
+                        </button>
+                    }
+                </div>
+            }
+
+            <div id="qr-code-canvas">
+                <img id="vietqr-img" src="" width="140" height="140"
+                     style="border-radius:4px;display:block;" alt="QR chuyển khoản" />
+            </div>
+            <div class="receipt-qr-sub" id="qr-sub">
+                H2D Cafe · Đơn #@Model.OrderId · <span id="qr-amount-text">@Model.TotalAmount?.ToString("N0") ₫</span>
             </div>
         </div>
 
@@ -99,45 +256,538 @@
     </div>
 </div>
 
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <style>
+        .add-popup-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 9999;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .add-popup-box {
+            background: #fff;
+            border-radius: 16px 16px 0 0;
+            width: 100%;
+            max-width: 480px;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .add-popup-hd {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid #f3f4f6;
+            flex-shrink: 0;
+        }
+
+        .add-popup-close {
+            background: none;
+            border: none;
+            font-size: 22px;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+        }
+
+        .add-popup-search {
+            position: relative;
+            padding: 8px 12px 6px;
+            flex-shrink: 0;
+        }
+
+        .add-search-icon {
+            position: absolute;
+            left: 22px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 15px;
+            pointer-events: none;
+        }
+
+        .add-search-input {
+            width: 100%;
+            padding: 8px 10px 8px 30px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .add-popup-list {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 8px 8px;
+        }
+
+        .ap-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 8px;
+            border-bottom: 1px solid #f9fafb;
+            cursor: pointer;
+            border-radius: 8px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+            .ap-row:active {
+                background: #f0fdf9;
+            }
+
+        .ap-row-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ap-row-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #111827;
+        }
+
+        .ap-row-cat {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-top: 1px;
+        }
+
+        .ap-row-price {
+            font-size: 12px;
+            font-weight: 600;
+            color: #0d9488;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .ap-row-add {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #0d9488;
+            color: #fff;
+            border: none;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .add-topping-section {
+            border-top: 1px solid #f3f4f6;
+            padding: 12px 16px;
+            flex-shrink: 0;
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+
+        .add-topping-hd {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .add-topping-label {
+            font-size: 10px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 6px;
+        }
+
+        .add-topping-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 0;
+            border-bottom: 1px solid #f9fafb;
+        }
+
+        .add-topping-label-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+            .add-topping-label-wrap input[type=checkbox] {
+                width: 16px;
+                height: 16px;
+                accent-color: #0d9488;
+                flex-shrink: 0;
+            }
+
+        .add-topping-name {
+            font-size: 13px;
+        }
+
+        .add-topping-price {
+            font-size: 11px;
+            color: #0d9488;
+            white-space: nowrap;
+        }
+
+        .add-topping-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #6b7280;
+            padding: 10px 0 4px;
+        }
+
+        .add-topping-btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .ri-wrap {
+            border-bottom: 1px solid #f9fafb;
+        }
+
+            .ri-wrap:last-child {
+                border-bottom: none;
+            }
+
+            .ri-wrap .receipt-item {
+                border-bottom: none !important;
+            }
+
+        .ri-del {
+            background: none;
+            border: none;
+            color: #d1d5db;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+            .ri-del:active {
+                color: #ef4444;
+                background: #fef2f2;
+            }
+
+        .receipt-qr {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 20px 12px;
+            border-top: 1px dashed #e5e7eb;
+            border-bottom: 1px dashed #e5e7eb;
+            margin: 0 0 4px;
+            background: #f9fafb;
+        }
+
+        .receipt-qr-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #9ca3af;
+        }
+
+        .receipt-qr-sub {
+            font-size: 10px;
+            color: #9ca3af;
+            text-align: center;
+        }
+
+        #qr-code-canvas {
+            background: #fff;
+            padding: 8px;
+            border-radius: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,.08);
+            line-height: 0;
+        }
+
+        .rc-bank-tabs {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 4px;
+        }
+
+        .rc-bank-tab {
+            padding: 4px 10px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 999px;
+            background: #fff;
+            font-size: 11px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+            .rc-bank-tab.active {
+                border-color: #0d9488;
+                background: #f0fdf9;
+                color: #0d9488;
+                font-weight: 600;
+            }
+    </style>
+}
+
 @section Scripts {
     <script>
-        async function doPrint(orderId) {
-            const btn = document.getElementById('print-btn');
-            btn.disabled    = true;
-            btn.textContent = '⏳ Đang in...';
+        const orderId    = @Model.OrderId;
+        const af         = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+                const banks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                    banks,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }
+            ));
+        let currentTotal = @(Model.TotalAmount ?? 0);
+        let bankIdx      = 0;
+        let _pid = 0, _pname = '', _pprice = 0;
+
+        function fmtVND(n) {
+            return new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫';
+        }
+
+        // ── Helpers lấy element an toàn ──────────────────────────
+        const $id  = id  => document.getElementById(id);
+
+        // ── QR ────────────────────────────────────────────────────
+        function renderQR() {
+            const bank = banks.length > 0 ? banks[bankIdx] : null;
+            const desc = encodeURIComponent('Don #' + orderId);
+            const amt  = Math.round(currentTotal);
+            let url;
+            if (bank) {
+                const name = encodeURIComponent(bank.accountName);
+                url = `https://img.vietqr.io/image/${bank.bankId}-${bank.accountNumber}-qr_only.png`
+                    + `?amount=${amt}&addInfo=${desc}&accountName=${name}`;
+            } else {
+                url = `https://img.vietqr.io/image/VCB-0081001280745-qr_only.png`
+                    + `?amount=${amt}&addInfo=${desc}&accountName=${encodeURIComponent('H2D CAFE')}`;
+            }
+            $id('vietqr-img').src = url;
+            const amtEl = $id('qr-amount-text');
+            if (amtEl) amtEl.textContent = fmtVND(currentTotal);
+        }
+
+        function selectBank(btn) {
+            document.querySelectorAll('.rc-bank-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            bankIdx = parseInt(btn.dataset.idx);
+            renderQR();
+        }
+
+        function updateTotal(newTotal) {
+            currentTotal = newTotal;
+            $id('disp-total').textContent = fmtVND(newTotal);
+            renderQR();
+        }
+
+        // ── Popup thêm món ────────────────────────────────────────
+        function openAddPopup() {
+            const popup = $id('add-popup');
+            if (!popup) return;                 // guard: canEdit=false thì không có popup
+            popup.style.display = 'flex';
+            backToList();
+            setTimeout(() => $id('ap-search')?.focus(), 150);
+        }
+
+        function closeAddPopup() {
+            const popup = $id('add-popup');
+            if (popup) popup.style.display = 'none';
+        }
+
+        function apSearch() {
+            const raw = $id('ap-search')?.value ?? '';
+            const q   = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                           .replace(/\u0111/g,'d').replace(/\u0110/g,'D').toLowerCase();
+            document.querySelectorAll('.ap-row').forEach(row => {
+                const name = (row.dataset.name ?? '').normalize('NFD')
+                                .replace(/[\u0300-\u036f]/g,'')
+                                .replace(/\u0111/g,'d').replace(/\u0110/g,'D').toLowerCase();
+                row.style.display = name.includes(q) ? '' : 'none';
+            });
+        }
+
+        function selectProduct(pid, name, price) {
+            _pid = pid; _pname = name; _pprice = price;
+
+            const topSec = $id('ap-topping-section');   // luôn tồn tại
+            const nameEl = $id('ap-selected-name');
+            const priceEl = $id('ap-selected-price');
+
+            if (nameEl)  nameEl.textContent  = name;
+            if (priceEl) priceEl.textContent = fmtVND(price);
+
+            // Uncheck tất cả topping cũ
+            document.querySelectorAll('.ap-topping-cb').forEach(cb => cb.checked = false);
+            recalcAddTotal();
+
+            // Ẩn list, hiện topping section
+            const listEl    = $id('ap-list');
+            const searchBar = $id('ap-search-bar');
+            if (listEl)    listEl.style.display    = 'none';
+            if (searchBar) searchBar.style.display = 'none';
+            if (topSec)    topSec.style.display    = '';
+        }
+
+        function backToList() {
+            const topSec    = $id('ap-topping-section');
+            const listEl    = $id('ap-list');
+            const searchBar = $id('ap-search-bar');
+            const searchIn  = $id('ap-search');
+
+            if (topSec)    topSec.style.display    = 'none';
+            if (listEl)    listEl.style.display    = '';
+            if (searchBar) searchBar.style.display = '';
+            if (searchIn)  searchIn.value = '';
+
+            document.querySelectorAll('.ap-row').forEach(r => r.style.display = '');
+            _pid = 0;
+        }
+
+        function recalcAddTotal() {
+            let extra = 0;
+            document.querySelectorAll('.ap-topping-cb:checked').forEach(cb => {
+                extra += parseFloat(cb.dataset.price ?? 0);
+            });
+            const el = $id('ap-total-price');
+            if (el) el.textContent = fmtVND(_pprice + extra);
+        }
+
+        async function confirmAddItem() {
+            if (!_pid) return;
+
+            const toppings = [];
+            document.querySelectorAll('.ap-topping-cb:checked').forEach(cb => {
+                toppings.push({ toppingId: parseInt(cb.value), quantity: 1 });
+            });
+
+            const fd = new FormData();
+            fd.append('orderId',  orderId);
+            fd.append('itemJson', JSON.stringify({ productId: _pid, note: null, toppings }));
+            fd.append('__RequestVerificationToken', af);
+
+            const btn = $id('ap-topping-section')?.querySelector('.btn-primary');
+            if (btn) { btn.disabled = true; btn.textContent = 'Đang thêm...'; }
 
             try {
-                const res = await fetch('/Order/Print?id=' + orderId, {
-                    method: 'GET'
-                });
+                const res  = await fetch('/Order/AddItem', { method: 'POST', body: fd });
+                const data = await res.json();
 
-                console.log('Print status:', res.status);
-
-                if (res.ok) {
-                    btn.textContent       = '✓ Đã in!';
-                    btn.style.background  = 'var(--teal-50)';
-                    btn.style.color       = 'var(--teal-700)';
-                    btn.style.borderColor = 'var(--teal-400)';
-                    setTimeout(() => {
-                        btn.disabled      = false;
-                        btn.textContent   = '🖨 In hóa đơn';
-                        btn.style         = '';
-                    }, 3000);
-                } else {
-                    const text = await res.text();
-                    console.error('Error:', text);
-                    alert('Lỗi in: ' + res.status + ' — ' + text);
-                    btn.disabled    = false;
-                    btn.textContent = '🖨 In hóa đơn';
+                if (!res.ok) {
+                    alert(data?.message ?? 'Lỗi thêm món');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Thêm vào đơn +'; }
+                    return;
                 }
-            } catch (err) {
-                console.error('Catch:', err);
-                alert('Không kết nối được máy in!');
-                btn.disabled    = false;
-                btn.textContent = '🖨 In hóa đơn';
+
+                // Tên topping đã chọn
+                const selectedToppings = Array.from(document.querySelectorAll('.ap-topping-cb:checked'))
+                    .map(cb => ({ name: cb.dataset.name, price: parseFloat(cb.dataset.price ?? 0) }));
+
+                // Thêm row vào receipt
+                const wrap = document.createElement('div');
+                wrap.className = 'ri-wrap';
+                wrap.id        = 'ri-' + data.orderItemId;
+                wrap.innerHTML = `
+                    <div class="receipt-item">
+                        <span><span class="ri-qty">×1</span> ${_pname}</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span class="ri-price">${fmtVND(data.unitPrice + (data.toppingTotal ?? 0))}</span>
+                            <button class="ri-del" onclick="removeItem(${data.orderItemId},this)" title="Xoá">✕</button>
+                        </div>
+                    </div>
+                    ${selectedToppings.map(t => `
+                        <div class="receipt-item" style="padding-left:20px;font-size:.88em;color:#9ca3af;">
+                            <span style="color:#0d9488;">+1 ${t.name}</span>
+                            <span class="ri-price" style="color:#9ca3af;">${fmtVND(t.price)}</span>
+                        </div>`).join('')}
+                `;
+                $id('receipt-items').appendChild(wrap);
+
+                updateTotal(data.newTotal);
+                closeAddPopup();
+                showToast('✓ Đã thêm: ' + _pname, 'success');
+
+            } catch(e) {
+                alert('Lỗi kết nối!');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Thêm vào đơn +'; }
             }
         }
 
+        // ── Xoá món ───────────────────────────────────────────────
+        async function removeItem(itemId, btn) {
+            if (!confirm('Xoá món này khỏi đơn?')) return;
+            btn.disabled = true; btn.textContent = '...';
+
+            const fd = new FormData();
+            fd.append('orderItemId', itemId);
+            fd.append('__RequestVerificationToken', af);
+
+            try {
+                const res  = await fetch('/Order/RemoveItem', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data?.message ?? 'Lỗi xoá');
+                    btn.disabled = false; btn.textContent = '✕';
+                    return;
+                }
+                $id('ri-' + itemId)?.remove();
+                updateTotal(data.newTotal);
+                showToast('Đã xoá món', 'info');
+            } catch(e) {
+                alert('Lỗi kết nối!');
+                btn.disabled = false; btn.textContent = '✕';
+            }
+        }
+
+        // ── Print ──────────────────────────────────────────────────
+        async function doPrint(id) {
+            const btn = $id('print-btn');
+            btn.disabled = true; btn.textContent = '⏳ Đang in...';
+            try {
+                const res = await fetch('/Order/Print?id=' + id);
+                if (res.ok) {
+                    btn.textContent = '✓ Đã in!';
+                    btn.style.cssText = 'background:var(--teal-50);color:var(--teal-700);border-color:var(--teal-400);';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = '🖨 In hóa đơn';
+                        btn.style = '';
+                    }, 3000);
+                } else {
+                    alert('Lỗi in: ' + res.status);
+                    btn.disabled = false; btn.textContent = '🖨 In hóa đơn';
+                }
+            } catch {
+                alert('Không kết nối được máy in!');
+                btn.disabled = false; btn.textContent = '🖨 In hóa đơn';
+            }
+        }
+
+        // ── Tap ngoài popup để đóng ────────────────────────────────
+        $id('add-popup')?.addEventListener('click', function(e) {
+            if (e.target === this) closeAddPopup();
+        });
+
         initSignalR('pos', {});
+        renderQR();
     </script>
 }

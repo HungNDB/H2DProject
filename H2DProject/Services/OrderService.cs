@@ -1,86 +1,139 @@
-using Microsoft.EntityFrameworkCore;
 using H2DProject.Data;
-using H2DProject.Models;
 using H2DProject.Models.ViewModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace H2DProject.Services;
 
 public class OrderService
 {
     private readonly H2DDbContext _db;
-
     public OrderService(H2DDbContext db) => _db = db;
 
     public async Task<Order> CreateOrderAsync(OrderViewModel model, int staffId)
     {
-        var productIds = model.Items.Select(i => i.ProductId).ToList();
+        // ── 1. Load product & topping 1 lần ─────────────────────────────────
+        var productIds = model.Items.Select(i => i.ProductId).Distinct().ToList();
+        var toppingIds = model.Items
+            .SelectMany(i => i.Toppings)
+            .Select(t => t.ToppingId)
+            .Distinct()
+            .ToList();
+
+        var discountIds = model.Items
+            .Where(i => i.DiscountId.HasValue)
+            .Select(i => i.DiscountId!.Value)
+            .ToList();
+        if (model.DiscountId.HasValue)
+            discountIds.Add(model.DiscountId.Value);
+
         var products = await _db.Products
             .Where(p => productIds.Contains(p.ProductId))
             .ToDictionaryAsync(p => p.ProductId);
 
-        // Lấy tất cả toppings cần dùng
-        var toppingIds = model.Items
-            .SelectMany(i => i.Toppings.Select(t => t.ToppingId))
-            .Distinct().ToList();
-        var toppings = await _db.Toppings
-            .Where(t => toppingIds.Contains(t.ToppingId))
-            .ToDictionaryAsync(t => t.ToppingId);
+        var toppings = toppingIds.Count > 0
+            ? await _db.Toppings
+                .Where(t => toppingIds.Contains(t.ToppingId))
+                .ToDictionaryAsync(t => t.ToppingId)
+            : new Dictionary<int, Topping>();
 
-        var items = model.Items.Select(i => {
-            var orderItem = new OrderItem
-            {
-                ProductId = i.ProductId,
-                Quantity = i.Quantity,
-                UnitPrice = products[i.ProductId].Price,
-                Note = i.Note
-            };
+        var discounts = discountIds.Count > 0
+            ? await _db.DiscountConfigs
+                .Where(d => discountIds.Contains(d.DiscountId) && d.IsActive == true)
+                .ToDictionaryAsync(d => d.DiscountId)
+            : new Dictionary<int, DiscountConfig>();
 
-            // Thêm toppings vào OrderItem
-            foreach (var t in i.Toppings)
-            {
-                if (toppings.ContainsKey(t.ToppingId))
-                {
-                    orderItem.OrderItemToppings.Add(new OrderItemTopping
-                    {
-                        ToppingId = t.ToppingId,
-                        Quantity = t.Quantity,
-                        UnitPrice = toppings[t.ToppingId].Price
-                    });
-                }
-            }
-            return orderItem;
-        }).ToList();
-
-        // Tính tổng tiền gồm cả topping
-        var subTotal = items.Sum(i =>
-            (i.Quantity * i.UnitPrice) +
-            i.OrderItemToppings.Sum(t => t.Quantity * t.UnitPrice)
-        );
-        var vatAmount = Math.Round(subTotal * 0.1m);
-
+        // ── 2. Tạo order ─────────────────────────────────────────────────────
         var order = new Order
         {
-            TableId = model.TableId ?? 0,
+            TableId = model.TableId,
             StaffId = staffId,
-            Note = model.Note,
-            SubTotal = subTotal,
-            Vatamount = vatAmount,
-            Discount = 0,
-            TotalAmount = subTotal + vatAmount,
             Status = "Pending",
-            CreatedAt = DateTime.Now
+            Note = model.Note,
+            PaymentMethod = model.PaymentMethod,
+            CreatedAt = DateTime.Now,
         };
+        _db.Orders.Add(order);
+        await _db.SaveChangesAsync(); // cần OrderId trước khi add items
 
-        foreach (var item in items)
-            order.OrderItems.Add(item);
+        // ── 3. Build OrderItems + Toppings ───────────────────────────────────
+        decimal subTotal = 0;
 
-        if (model.TableId.HasValue && model.TableId > 0)
+        foreach (var itemInput in model.Items)
         {
-            var table = await _db.Tables.FindAsync(model.TableId);
-            if (table != null) table.Status = "Occupied";
+            if (!products.TryGetValue(itemInput.ProductId, out var product))
+                throw new Exception($"Product {itemInput.ProductId} not found");
+
+            // Giảm giá từng món
+            decimal itemDiscount = 0;
+            if (itemInput.DiscountId.HasValue && discounts.TryGetValue(itemInput.DiscountId.Value, out var dc))
+                itemDiscount = CalcDiscount(dc, product.Price * itemInput.Quantity);
+            else if (itemInput.ManualDiscount.HasValue)
+                itemDiscount = itemInput.ManualDiscount.Value;
+
+            decimal toppingTotal = 0;
+            var itemToppings = new List<OrderItemTopping>();
+
+            foreach (var ti in itemInput.Toppings)
+            {
+                if (!toppings.TryGetValue(ti.ToppingId, out var topping))
+                    throw new Exception($"Topping {ti.ToppingId} not found");
+
+                itemToppings.Add(new OrderItemTopping
+                {
+                    ToppingId = ti.ToppingId,
+                    Quantity = ti.Quantity,
+                    UnitPrice = topping.Price,
+                });
+                toppingTotal += topping.Price * ti.Quantity;
+            }
+
+            var orderItem = new OrderItem
+            {
+                OrderId = order.OrderId,
+                ProductId = itemInput.ProductId,
+                Quantity = itemInput.Quantity,
+                UnitPrice = product.Price,
+                Note = itemInput.Note,
+                DiscountAmount = itemDiscount,
+                OrderItemToppings = itemToppings,
+            };
+            _db.OrderItems.Add(orderItem);
+
+            subTotal += product.Price * itemInput.Quantity + toppingTotal - itemDiscount;
         }
 
-        _db.Orders.Add(order);
+        // ── 4. Giảm giá toàn đơn ─────────────────────────────────────────────
+        decimal orderDiscount = 0;
+        if (model.DiscountId.HasValue && discounts.TryGetValue(model.DiscountId.Value, out var orderDc))
+            orderDiscount = CalcDiscount(orderDc, subTotal);
+        else if (model.ManualDiscount.HasValue)
+            orderDiscount = model.ManualDiscount.Value;
+
+        // ── 5. Tổng tiền ──────────────────────────────────────────────────────
+        const decimal vatRate = 0m;
+        var vatAmount = Math.Round(subTotal * vatRate);
+        var total = subTotal - orderDiscount + vatAmount;
+
+        order.SubTotal = subTotal;
+        order.Discount = orderDiscount;
+        order.Vatamount = vatAmount;
+        order.TotalAmount = total;
+
+        await _db.SaveChangesAsync();
+        return order;
+    }
+
+    public async Task<Order?> UpdateStatusAsync(int orderId, string status)
+    {
+        var order = await _db.Orders
+            .Include(o => o.Table)
+            .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+        if (order is null) return null;
+
+        order.Status = status;
+        if (status == "Completed") order.CompletedAt = DateTime.Now;
+
         await _db.SaveChangesAsync();
         return order;
     }
@@ -91,34 +144,20 @@ public class OrderService
             .Include(o => o.Table)
             .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
-        if (order == null) return null;
+        if (order is null) return null;
 
         order.Status = "Completed";
         order.PaymentMethod = paymentMethod;
         order.CompletedAt = DateTime.Now;
-        if (order.Table != null) order.Table.Status = "Available";
 
         await _db.SaveChangesAsync();
         return order;
     }
 
-    public async Task<Order?> UpdateStatusAsync(int orderId, string newStatus)
+    private static decimal CalcDiscount(DiscountConfig dc, decimal amount)
     {
-        var order = await _db.Orders
-            .Include(o => o.Table)
-            .FirstOrDefaultAsync(o => o.OrderId == orderId);
-
-        if (order == null) return null;
-
-        order.Status = newStatus;
-
-        if (newStatus is "Completed" or "Cancelled")
-        {
-            if (newStatus == "Completed") order.CompletedAt = DateTime.Now;
-            if (order.Table != null) order.Table.Status = "Available";
-        }
-
-        await _db.SaveChangesAsync();
-        return order;
+        if (dc.Type == "Percent") return Math.Round(amount * dc.Value / 100);
+        if (dc.Type == "Fixed") return Math.Min(dc.Value, amount);
+        return 0;
     }
 }

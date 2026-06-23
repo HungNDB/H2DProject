@@ -1,0 +1,112 @@
+@using H2DProject.Models
+@model Product
+@Html.AntiForgeryToken()
+@{ ViewData["Title"] = "Sửa sản phẩm"; }
+
+<div style="max-width:640px;margin:0 auto;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+        <a asp-action="Index" style="color:var(--gray-400);text-decoration:none;font-size:0.9rem;">← Quay lại</a>
+        <h2 style="margin:0;font-size:1.3rem;font-weight:700;">Sửa sản phẩm</h2>
+    </div>
+
+    <div style="background:white;border-radius:12px;border:1px solid var(--gray-200);padding:28px;">
+        <form asp-action="Edit" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ProductId" />
+            <input type="hidden" asp-for="CreatedAt" />
+            <input type="hidden" asp-for="ImageUrl" id="currentImageUrl" />
+
+            <div style="margin-bottom:18px;">
+                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">
+                    Tên sản phẩm <span style="color:red;">*</span>
+                </label>
+                <input asp-for="Name" placeholder="VD: Trà đào cam sả"
+                       style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;box-sizing:border-box;" />
+                <span asp-validation-for="Name" style="color:red;font-size:0.8rem;"></span>
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">
+                    Danh mục <span style="color:red;">*</span>
+                </label>
+                <select asp-for="CategoryId" asp-items="ViewBag.CategoryList"
+                        style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;box-sizing:border-box;">
+                    <option value="">-- Chọn danh mục --</option>
+                </select>
+                <span asp-validation-for="CategoryId" style="color:red;font-size:0.8rem;"></span>
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">
+                    Giá bán (₫) <span style="color:red;">*</span>
+                </label>
+                <input asp-for="Price" type="number" min="0" step="500"
+                       style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;box-sizing:border-box;" />
+                <span asp-validation-for="Price" style="color:red;font-size:0.8rem;"></span>
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">Mô tả</label>
+                <textarea asp-for="Description" rows="3"
+                          style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;resize:vertical;box-sizing:border-box;"></textarea>
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">Ảnh sản phẩm</label>
+
+                @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                {
+                    <div style="margin-bottom:10px;display:flex;align-items:center;gap:12px;">
+                        <img id="currentImg" src="@Model.ImageUrl" alt="@Model.Name"
+                             style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--gray-200);" />
+                        <p style="font-size:0.78rem;color:var(--gray-400);margin:0;">Ảnh hiện tại.<br>Chọn ảnh mới để thay thế.</p>
+                    </div>
+                }
+                else
+                {
+                    <img id="currentImg" style="display:none;" />
+                }
+
+                <input type="file" name="imageFile" accept="image/*"
+                       style="width:100%;padding:8px;border:1px dashed var(--gray-300);border-radius:8px;font-size:0.9rem;box-sizing:border-box;cursor:pointer;"
+                       onchange="previewImg(this)" />
+                <img id="imgPreview" src="" alt="preview"
+                     style="display:none;margin-top:10px;width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--gray-200);" />
+            </div>
+
+            <div style="margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+                <input type="checkbox" name="IsAvailable" id="isAvail"
+                       @(Model.IsAvailable == true ? "checked" : "")
+                       value="true"
+                       style="width:18px;height:18px;accent-color:var(--teal-600);cursor:pointer;" />
+                <input type="hidden" name="IsAvailable" value="false" />
+                <label for="isAvail" style="font-size:0.9rem;font-weight:500;cursor:pointer;">
+                    Đang bán (hiển thị cho nhân viên gọi món)
+                </label>
+            </div>
+
+            <div style="display:flex;gap:10px;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">💾 Lưu thay đổi</button>
+                <a asp-action="Index" class="btn btn-secondary">Huỷ</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function previewImg(input) {
+    const preview = document.getElementById('imgPreview');
+    const current = document.getElementById('currentImg');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            if (current) current.style.opacity = '0.4';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+}
