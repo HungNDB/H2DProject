@@ -28,8 +28,14 @@ public class OrderItemNotification
     public string ProductName { get; set; } = "";
     public int Quantity { get; set; }
     public string? Note { get; set; }
+    public List<ToppingNotification> Toppings { get; set; } = new(); // ? thêm dòng này
 }
 
+public class ToppingNotification
+{
+    public string Name { get; set; } = "";
+    public int Quantity { get; set; }
+}
 public class OrderStatusUpdate
 {
     public int OrderId { get; set; }

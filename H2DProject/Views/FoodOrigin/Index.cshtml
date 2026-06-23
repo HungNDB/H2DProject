@@ -1,0 +1,680 @@
+﻿@using H2DProject.Data
+@model List<FoodOriginLog>
+@{
+    ViewData["Title"] = "Sổ Nguồn Gốc Thực Phẩm";
+}
+
+@* ── Popup nhập liệu ── *@
+<div id="fo-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:flex-end;justify-content:center;">
+    <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:1px solid #f3f4f6;flex-shrink:0;">
+            <div style="font-weight:600;font-size:15px;">📋 Ghi sổ nguồn gốc thực phẩm</div>
+            <button onclick="closePopup()" style="background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;line-height:1;">✕</button>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:14px 16px;">
+
+            @* Ngày nhập *@
+            <div class="fo-field">
+                <label class="fo-label">Ngày nhập <span style="color:#ef4444;">*</span></label>
+                <input type="date" id="f-date" class="fo-input" value="@DateTime.Today.ToString("yyyy-MM-dd")">
+            </div>
+
+            @* Tên nguyên liệu / hàng hóa *@
+            <div class="fo-field">
+                <label class="fo-label">Tên nguyên liệu / hàng hóa <span style="color:#ef4444;">*</span></label>
+
+                @* Tabs nhóm *@
+                <div class="fo-group-tabs" id="fo-group-tabs">
+                    <button type="button" class="fo-gtab active" data-group="drinks" onclick="switchGroup(this)">🧋 Đồ uống</button>
+                    <button type="button" class="fo-gtab" data-group="fruits" onclick="switchGroup(this)">🍊 Trái cây</button>
+                    <button type="button" class="fo-gtab" data-group="dairy" onclick="switchGroup(this)">🥛 Sữa & Bột</button>
+                    <button type="button" class="fo-gtab" data-group="supply" onclick="switchGroup(this)">📦 Vật tư</button>
+                    <button type="button" class="fo-gtab" data-group="util" onclick="switchGroup(this)">💡 Tiện ích</button>
+                </div>
+
+                @* Tag lists theo nhóm *@
+                <div class="fo-quick-tags" id="fo-tags-drinks">
+                    @foreach (var tag in new[] { "Trà", "Trà đen", "Trà lài", "Trà xanh", "Trà sữa", "Cà phê", "Cà phê sữa", "Bạc xỉu", "Matcha", "Socola", "Nước ép", "Sinh tố", "Soda", "Nước suối", "Đường", "Siro", "Cream cheese", "Trân châu", "Thạch", "Ice", "Đá viên" })
+                    {
+                        <button type="button" class="fo-qtag" onclick="setField('f-foodname','@tag')">@tag</button>
+                    }
+                </div>
+                <div class="fo-quick-tags" id="fo-tags-fruits" style="display:none;">
+                    @foreach (var tag in new[] { "Cam", "Dừa", "Vải", "Dâu", "Xoài", "Chanh", "Dưa hấu", "Táo", "Nho", "Ổi", "Bơ", "Chuối", "Thơm", "Mãng cầu" })
+                    {
+                        <button type="button" class="fo-qtag" onclick="setField('f-foodname','@tag')">@tag</button>
+                    }
+                </div>
+                <div class="fo-quick-tags" id="fo-tags-dairy" style="display:none;">
+                    @foreach (var tag in new[] { "Sữa tươi", "Sữa đặc", "Sữa béo", "Sữa chua", "Whipping cream", "Bột trà xanh", "Bột socola", "Bột matcha", "Bột pudding", "Bột trân châu", "Cacao bột" })
+                    {
+                        <button type="button" class="fo-qtag" onclick="setField('f-foodname','@tag')">@tag</button>
+                    }
+                </div>
+                <div class="fo-quick-tags" id="fo-tags-supply" style="display:none;">
+                    @foreach (var tag in new[] { "Ly giấy", "Ly nhựa", "Nắp ly", "Ống hút", "Bọc nilon", "Túi giấy", "Khăn giấy", "Băng dán", "Hộp đựng", "Nhãn dán", "Dây buộc", "Cốc đá" })
+                    {
+                        <button type="button" class="fo-qtag" onclick="setField('f-foodname','@tag')">@tag</button>
+                    }
+                </div>
+                <div class="fo-quick-tags" id="fo-tags-util" style="display:none;">
+                    @foreach (var tag in new[] { "Tiền điện", "Tiền nước", "Wifi", "Gas", "Xăng xe", "Thuê mặt bằng", "Vệ sinh", "Sửa chữa máy", "Hóa chất tẩy rửa" })
+                    {
+                        <button type="button" class="fo-qtag" onclick="setField('f-foodname','@tag')">@tag</button>
+                    }
+                </div>
+
+                <input type="text" id="f-foodname" class="fo-input" placeholder="VD: Trà đen, Sữa tươi, Ly giấy...">
+            </div>
+
+            @* Số lượng + Đơn vị *@
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="fo-field">
+                    <label class="fo-label">Số lượng</label>
+                    <input type="number" id="f-qty" class="fo-input" placeholder="10" min="0" step="0.5">
+                </div>
+                <div class="fo-field">
+                    <label class="fo-label">Đơn vị</label>
+                    <select id="f-unit" class="fo-input" style="appearance:auto;">
+                        <option value="">— không có —</option>
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="lít">lít</option>
+                        <option value="ml">ml</option>
+                        <option value="con">con</option>
+                        <option value="bó">bó</option>
+                        <option value="hộp">hộp</option>
+                        <option value="thùng">thùng</option>
+                        <option value="gói">gói</option>
+                        <option value="cái">cái</option>
+                    </select>
+                </div>
+            </div>
+
+            @* Đơn vị cung cấp *@
+            <div class="fo-field">
+                <label class="fo-label">Đơn vị cung cấp / Tên người bán</label>
+                <input type="text" id="f-supplier" class="fo-input" placeholder="VD: Chị Lan, HTX Xanh, Công ty ABC...">
+            </div>
+
+            @* Nguồn gốc *@
+            <div class="fo-field">
+                <label class="fo-label">Địa chỉ / Nguồn gốc</label>
+                <div class="fo-quick-tags">
+                    @foreach (var tag in new[] { "Chợ", "Siêu thị", "Lò mổ", "Trang trại", "Công ty" })
+                    {
+                        <button type="button" class="fo-qtag" onclick="setField('f-origin','@tag')">@tag</button>
+                    }
+                </div>
+                <input type="text" id="f-origin" class="fo-input" placeholder="VD: Chợ Bình Tây, Siêu thị Co.opmart...">
+            </div>
+
+            @* Hóa đơn / chứng từ *@
+            <div class="fo-field">
+                <label class="fo-label">Hóa đơn / Chứng từ</label>
+                <div class="fo-quick-tags">
+                    <button type="button" class="fo-qtag" onclick="setField('f-invoice','Không có')">Không có</button>
+                    <button type="button" class="fo-qtag" onclick="setField('f-invoice','Có')">Có</button>
+                </div>
+                <input type="text" id="f-invoice" class="fo-input" placeholder="Có / Không có / Số HĐ: 00123">
+            </div>
+
+            @* Tình trạng *@
+            <div class="fo-field">
+                <label class="fo-label">Tình trạng</label>
+                <div class="fo-quick-tags">
+                    @foreach (var tag in new[] { "Tươi sống", "Đông lạnh", "Đóng gói", "Có nhãn mác", "Không nhãn mác" })
+                    {
+                        <button type="button" class="fo-qtag" onclick="setField('f-condition','@tag')">@tag</button>
+                    }
+                </div>
+                <input type="text" id="f-condition" class="fo-input" placeholder="VD: Tươi sống, Đông lạnh, Đóng gói...">
+            </div>
+
+            @* Người nhận *@
+            <div class="fo-field">
+                <label class="fo-label">Người nhận hàng</label>
+                <input type="text" id="f-receivedby" class="fo-input" placeholder="Tên người nhận / ký tên">
+            </div>
+
+            @* Ghi chú *@
+            <div class="fo-field">
+                <label class="fo-label">Ghi chú thêm</label>
+                <textarea id="f-note" class="fo-input" rows="2" placeholder="Ghi chú khác nếu có..."></textarea>
+            </div>
+        </div>
+
+        <div style="padding:10px 16px 16px;flex-shrink:0;border-top:1px solid #f3f4f6;display:flex;gap:8px;">
+            <button onclick="closePopup()" class="btn btn-secondary" style="min-width:70px;">Huỷ</button>
+            <button onclick="submitLog()" class="btn btn-primary" style="flex:1;min-height:44px;font-weight:600;" id="fo-submit-btn">
+                💾 Lưu vào sổ
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Popup cài đặt xuất Excel ── *@
+<div id="export-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;width:90%;max-width:400px;padding:20px;">
+        <div style="font-weight:600;font-size:15px;margin-bottom:14px;">⬇️ Xuất Excel để nộp cơ quan</div>
+
+        <div class="fo-field">
+            <label class="fo-label">Tên cơ sở</label>
+            <input type="text" id="ex-shopname" class="fo-input" placeholder="Quán cà phê H2D...">
+        </div>
+        <div class="fo-field">
+            <label class="fo-label">Địa chỉ</label>
+            <input type="text" id="ex-address" class="fo-input" placeholder="123 Đường ABC, Quận 1...">
+        </div>
+        <div class="fo-field">
+            <label class="fo-label">Số điện thoại</label>
+            <input type="text" id="ex-phone" class="fo-input" placeholder="0901 234 567">
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:6px;">
+            <button onclick="closeExportPopup()" class="btn btn-secondary" style="min-width:70px;">Huỷ</button>
+            <button onclick="doExport()" class="btn btn-primary" style="flex:1;min-height:44px;font-weight:600;">
+                📥 Tải về Excel
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Main page ── *@
+<div class="content-area">
+
+    @* Stats *@
+    <div class="exp-stats" style="margin-bottom:14px;">
+        <div class="exp-stat-card">
+            <div class="exp-stat-label">Số lần nhập</div>
+            <div class="exp-stat-value" id="total-count">@Model.Count</div>
+        </div>
+        <div class="exp-stat-card" style="display:flex;align-items:center;justify-content:center;">
+            <button onclick="openExportPopup()" class="btn btn-primary"
+                    style="width:100%;height:44px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">
+                📥 Xuất Excel
+            </button>
+        </div>
+    </div>
+
+    @* Filter bar *@
+    <div class="card" style="margin-bottom:14px;padding:12px 14px;">
+        <form method="get" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
+            <div style="flex:1;min-width:120px;">
+                <div class="fo-label">Từ ngày</div>
+                <input type="date" name="from" class="fo-input" value="@ViewBag.From">
+            </div>
+            <div style="flex:1;min-width:120px;">
+                <div class="fo-label">Đến ngày</div>
+                <input type="date" name="to" class="fo-input" value="@ViewBag.To">
+            </div>
+            <div style="flex:2;min-width:140px;">
+                <div class="fo-label">Tìm kiếm</div>
+                <input type="text" name="q" class="fo-input" value="@ViewBag.Q" placeholder="Tên thực phẩm, NCC...">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary" style="min-height:38px;padding:0 14px;">Lọc</button>
+            </div>
+        </form>
+    </div>
+
+    @* List *@
+    <div class="card" style="padding:0;overflow:hidden;" id="fo-list">
+        @if (!Model.Any())
+        {
+            <div style="text-align:center;padding:3rem;color:#9ca3af;">Chưa có dữ liệu trong kỳ này</div>
+        }
+        else
+        {
+            @foreach (var f in Model)
+            {
+                <div class="fo-row" id="fo-@f.LogId">
+                    <div class="fo-row-icon">🥦</div>
+                    <div class="fo-row-body">
+                        <div class="fo-row-name">@f.FoodName</div>
+                        <div class="fo-row-meta">
+                            @f.EntryDate.ToString("dd/MM/yyyy")
+                            @if (f.Quantity.HasValue)
+                            {
+                                <span>· @f.Quantity?.ToString("G29") @f.Unit</span>
+                            }
+                            @if (!string.IsNullOrEmpty(f.Supplier))
+                            {
+                                <span>· @f.Supplier</span>
+                            }
+                            @if (!string.IsNullOrEmpty(f.Origin))
+                            {
+                                <span>· @f.Origin</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(f.Condition) || !string.IsNullOrEmpty(f.InvoiceInfo))
+                        {
+                            <div class="fo-row-tags">
+                                @if (!string.IsNullOrEmpty(f.Condition))
+                                {
+                                    <span class="fo-tag fo-tag-green">@f.Condition</span>
+                                }
+                                @if (!string.IsNullOrEmpty(f.InvoiceInfo))
+                                {
+                                    <span class="fo-tag fo-tag-blue">HĐ: @f.InvoiceInfo</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="fo-row-right">
+                        @if (!string.IsNullOrEmpty(f.ReceivedBy))
+                        {
+                            <div class="fo-row-receiver">👤 @f.ReceivedBy</div>
+                        }
+                        <button class="exp-del-btn" onclick="deleteLog(@f.LogId, this)">✕</button>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@* FAB *@
+<button class="exp-fab" onclick="openPopup()">+</button>
+
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <style>
+        .fo-field {
+            margin-bottom: 12px;
+        }
+
+        .fo-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+        }
+
+        .fo-input {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+            color: #111827;
+            box-sizing: border-box;
+        }
+
+            .fo-input:focus {
+                outline: none;
+                border-color: #0d9488;
+                box-shadow: 0 0 0 3px rgba(13,148,136,.1);
+            }
+
+        .fo-group-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 7px;
+        }
+
+        .fo-gtab {
+            padding: 4px 11px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 999px;
+            background: #f9fafb;
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all .12s;
+        }
+
+            .fo-gtab.active {
+                border-color: #0d9488;
+                background: #f0fdf9;
+                color: #0d9488;
+            }
+
+        .fo-quick-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 6px;
+        }
+
+        .fo-qtag {
+            padding: 3px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            font-size: 11px;
+            cursor: pointer;
+            background: #f9fafb;
+            color: #374151;
+        }
+
+            .fo-qtag:active {
+                background: #f0fdf9;
+                border-color: #0d9488;
+                color: #0d9488;
+            }
+
+        .fo-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            border-bottom: 1px solid #f9fafb;
+        }
+
+            .fo-row:last-child {
+                border-bottom: none;
+            }
+
+        .fo-row-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: #f0fdf9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .fo-row-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .fo-row-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .fo-row-meta {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 2px;
+        }
+
+        .fo-row-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 5px;
+        }
+
+        .fo-tag {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .fo-tag-green {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .fo-tag-blue {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .fo-row-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .fo-row-receiver {
+            font-size: 10px;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        /* reuse from expense */
+        .exp-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .exp-stat-card {
+            background: #fff;
+            border: 1px solid var(--gray-100, #f3f4f6);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+
+        .exp-stat-label {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+
+        .exp-stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .exp-del-btn {
+            background: none;
+            border: none;
+            color: #d1d5db;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 3px 5px;
+            border-radius: 5px;
+        }
+
+            .exp-del-btn:active {
+                color: #ef4444;
+                background: #fef2f2;
+            }
+
+        .exp-fab {
+            position: fixed;
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+            right: 16px;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #0d9488;
+            color: #fff;
+            font-size: 28px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(13,148,136,.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+            .exp-fab:active {
+                transform: scale(.92);
+            }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        const af = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+        // ── Nhóm quick tags ─────────────────────────────────────
+        function switchGroup(btn) {
+            document.querySelectorAll('.fo-gtab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const groups = ['drinks','fruits','dairy','supply','util'];
+            groups.forEach(g => {
+                document.getElementById('fo-tags-' + g).style.display =
+                    g === btn.dataset.group ? 'flex' : 'none';
+            });
+        }
+
+        // ── Quick tag helpers ───────────────────────────────────
+        function setField(id, val) {
+            document.getElementById(id).value = val;
+        }
+
+        // ── Popup nhập liệu ────────────────────────────────────
+        function openPopup() {
+            document.getElementById('fo-popup').style.display = 'flex';
+            setTimeout(() => document.getElementById('f-foodname').focus(), 150);
+        }
+        function closePopup() {
+            document.getElementById('fo-popup').style.display = 'none';
+            ['f-foodname','f-qty','f-supplier','f-origin','f-invoice','f-condition','f-receivedby','f-note']
+                .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            document.getElementById('f-unit').value = '';
+            document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+        }
+        document.getElementById('fo-popup').addEventListener('click', function(e) {
+            if (e.target === this) closePopup();
+        });
+
+        // ── Submit nhập liệu ───────────────────────────────────
+        async function submitLog() {
+            const foodName = document.getElementById('f-foodname').value.trim();
+            if (!foodName) {
+                alert('Vui lòng nhập tên thực phẩm!');
+                document.getElementById('f-foodname').focus();
+                return;
+            }
+
+            const btn = document.getElementById('fo-submit-btn');
+            btn.disabled = true; btn.textContent = 'Đang lưu...';
+
+            const fd = new FormData();
+            fd.append('entryDate',   document.getElementById('f-date').value);
+            fd.append('foodName',    foodName);
+            fd.append('quantity',    document.getElementById('f-qty').value);
+            fd.append('unit',        document.getElementById('f-unit').value);
+            fd.append('supplier',    document.getElementById('f-supplier').value.trim());
+            fd.append('origin',      document.getElementById('f-origin').value.trim());
+            fd.append('invoiceInfo', document.getElementById('f-invoice').value.trim());
+            fd.append('condition',   document.getElementById('f-condition').value.trim());
+            fd.append('receivedBy',  document.getElementById('f-receivedby').value.trim());
+            fd.append('note',        document.getElementById('f-note').value.trim());
+            fd.append('__RequestVerificationToken', af);
+
+            try {
+                const res  = await fetch('/FoodOrigin/Create', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!res.ok) { alert('Lỗi: ' + (data.message || res.status)); return; }
+
+                // Thêm row mới vào list
+                const list = document.getElementById('fo-list');
+                const empty = list.querySelector('div[style*="text-align:center"]');
+                if (empty) empty.remove();
+
+                const qty      = document.getElementById('f-qty').value;
+                const unit     = document.getElementById('f-unit').value;
+                const supplier = document.getElementById('f-supplier').value.trim();
+                const origin   = document.getElementById('f-origin').value.trim();
+                const cond     = document.getElementById('f-condition').value.trim();
+                const inv      = document.getElementById('f-invoice').value.trim();
+                const recv     = document.getElementById('f-receivedby').value.trim();
+
+                const qtyText  = qty  ? `· ${qty} ${unit}` : '';
+                const suppText = supplier ? `· ${supplier}` : '';
+                const origText = origin   ? `· ${origin}`   : '';
+                const condTag  = cond ? `<span class="fo-tag fo-tag-green">${cond}</span>` : '';
+                const invTag   = inv  ? `<span class="fo-tag fo-tag-blue">HĐ: ${inv}</span>` : '';
+                const tagsHtml = (condTag || invTag)
+                    ? `<div class="fo-row-tags">${condTag}${invTag}</div>` : '';
+                const recvHtml = recv
+                    ? `<div class="fo-row-receiver">👤 ${recv}</div>` : '';
+
+                const row = document.createElement('div');
+                row.className = 'fo-row';
+                row.id = 'fo-' + data.logId;
+                row.innerHTML = `
+                    <div class="fo-row-icon">🥦</div>
+                    <div class="fo-row-body">
+                        <div class="fo-row-name">${data.foodName}</div>
+                        <div class="fo-row-meta">${data.entryDate} ${qtyText} ${suppText} ${origText}</div>
+                        ${tagsHtml}
+                    </div>
+                    <div class="fo-row-right">
+                        ${recvHtml}
+                        <button class="exp-del-btn" onclick="deleteLog(${data.logId}, this)">✕</button>
+                    </div>`;
+
+                list.insertAdjacentElement('afterbegin', row);
+
+                // Cập nhật đếm
+                const countEl = document.getElementById('total-count');
+                countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+
+                closePopup();
+                showToast?.('✓ Đã ghi: ' + data.foodName, 'success');
+            } catch(e) {
+                alert('Lỗi kết nối!');
+            } finally {
+                btn.disabled = false; btn.textContent = '💾 Lưu vào sổ';
+            }
+        }
+
+        // ── Xoá ───────────────────────────────────────────────
+        async function deleteLog(id, btn) {
+            if (!confirm('Xoá dòng này khỏi sổ?')) return;
+            btn.disabled = true;
+            const fd = new FormData();
+            fd.append('id', id);
+            fd.append('__RequestVerificationToken', af);
+            try {
+                const res = await fetch('/FoodOrigin/Delete', { method: 'POST', body: fd });
+                if (res.ok) {
+                    document.getElementById('fo-' + id)?.remove();
+                    const countEl = document.getElementById('total-count');
+                    countEl.textContent = Math.max(0, parseInt(countEl.textContent || '0') - 1);
+                    showToast?.('Đã xoá', 'info');
+                } else {
+                    alert('Lỗi xoá!'); btn.disabled = false;
+                }
+            } catch { alert('Lỗi kết nối!'); btn.disabled = false; }
+        }
+
+        // ── Xuất Excel ─────────────────────────────────────────
+        function openExportPopup() {
+            document.getElementById('export-popup').style.display = 'flex';
+        }
+        function closeExportPopup() {
+            document.getElementById('export-popup').style.display = 'none';
+        }
+        document.getElementById('export-popup').addEventListener('click', function(e) {
+            if (e.target === this) closeExportPopup();
+        });
+
+        function doExport() {
+            const from  = document.querySelector('input[name="from"]')?.value || '@ViewBag.From';
+            const to    = document.querySelector('input[name="to"]')?.value   || '@ViewBag.To';
+            const q     = document.querySelector('input[name="q"]')?.value    || '';
+            const name  = document.getElementById('ex-shopname').value.trim();
+            const addr  = document.getElementById('ex-address').value.trim();
+            const phone = document.getElementById('ex-phone').value.trim();
+
+            const url = `/FoodOrigin/ExportExcel?from=${from}&to=${to}` +
+                        `&q=${encodeURIComponent(q)}` +
+                        `&shopName=${encodeURIComponent(name)}` +
+                        `&shopAddress=${encodeURIComponent(addr)}` +
+                        `&shopPhone=${encodeURIComponent(phone)}`;
+
+            closeExportPopup();
+            window.location.href = url;
+        }
+    </script>
+}

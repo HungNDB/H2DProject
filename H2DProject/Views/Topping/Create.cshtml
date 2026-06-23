@@ -1,0 +1,48 @@
+@using H2DProject.Models
+@model Topping
+@{ ViewData["Title"] = "Thêm topping"; }
+
+<div style="max-width:480px;margin:0 auto;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+        <a asp-action="Index" style="color:var(--gray-400);text-decoration:none;font-size:0.9rem;">← Quay lại</a>
+        <h2 style="margin:0;font-size:1.3rem;font-weight:700;">Thêm topping mới</h2>
+    </div>
+
+    <div style="background:white;border-radius:12px;border:1px solid var(--gray-200);padding:28px;">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div style="margin-bottom:18px;">
+                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">
+                    Tên topping <span style="color:red;">*</span>
+                </label>
+                <input asp-for="Name" placeholder="VD: Trân châu đen"
+                       style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;box-sizing:border-box;" />
+                <span asp-validation-for="Name" style="color:red;font-size:0.8rem;"></span>
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">
+                    Giá (₫) <span style="color:red;">*</span>
+                </label>
+                <input asp-for="Price" type="number" min="0" step="500" placeholder="VD: 5000"
+                       style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;box-sizing:border-box;" />
+                <span asp-validation-for="Price" style="color:red;font-size:0.8rem;"></span>
+            </div>
+
+            <div style="margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+                <input type="checkbox" name="IsAvailable" id="isAvail" checked value="true"
+                       style="width:18px;height:18px;accent-color:var(--teal-600);cursor:pointer;" />
+                <input type="hidden" name="IsAvailable" value="false" />
+                <label for="isAvail" style="font-size:0.9rem;font-weight:500;cursor:pointer;">
+                    Đang bán (hiển thị khi gọi món)
+                </label>
+            </div>
+
+            <div style="display:flex;gap:10px;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">➕ Thêm topping</button>
+                <a asp-action="Index" class="btn btn-secondary">Huỷ</a>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,752 @@
+﻿@model List<H2DProject.Controllers.ProductSalesRow>
+@{
+    ViewData["Title"] = "Thống kê bán hàng";
+    var totalQty = Model.Sum(x => x.QtySold);
+    var maxQty = Model.Any() ? Model.Max(x => x.QtySold) : 1;
+}
+
+@section Styles {
+    <style>
+        /* ════════════════════════════════════════════════════
+           STATS GRID — 2 cột mobile, 4 cột desktop
+        ════════════════════════════════════════════════════ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        @@media (min-width: 640px) {
+            .stats-grid {
+                grid-template-columns: repeat(4,1fr);
+                gap: 14px;
+                margin-bottom: 22px;
+            }
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 14px 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.04);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        @@media (min-width: 640px) {
+            .stat-card {
+                padding: 18px 20px;
+                border-radius: 14px;
+            }
+        }
+
+        .stat-card .sc-label {
+            font-size: 0.67rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: var(--gray-400);
+        }
+
+        .stat-card .sc-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--teal-700);
+            line-height: 1.1;
+        }
+
+        @@media (min-width: 640px) {
+            .stat-card .sc-value {
+                font-size: 1.55rem;
+            }
+        }
+
+        .stat-card .sc-sub {
+            font-size: 0.7rem;
+            color: var(--gray-400);
+        }
+
+        /* ════════════════════════════════════════════════════
+           FILTER BAR
+        ════════════════════════════════════════════════════ */
+        .filter-bar {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.04);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @@media (min-width: 640px) {
+            .filter-bar {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                padding: 12px 16px;
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Preset pills — scroll ngang trên mobile */
+        .preset-row {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 2px;
+        }
+
+            .preset-row::-webkit-scrollbar {
+                display: none;
+            }
+
+        .preset-btn {
+            flex-shrink: 0;
+            padding: 6px 14px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: white;
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+
+            .preset-btn:hover, .preset-btn.active {
+                border-color: var(--teal-400);
+                background: var(--teal-50);
+                color: var(--teal-700);
+            }
+
+        /* Date row */
+        .date-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .filter-select {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 8px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.83rem;
+            background: var(--gray-50);
+            color: var(--gray-700);
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+            .filter-select:focus {
+                outline: none;
+                border-color: var(--teal-400);
+            }
+
+        .filter-label {
+            font-size: 0.82rem;
+            color: var(--gray-400);
+            font-weight: 600;
+            white-space: nowrap;
+            display: none;
+        }
+
+        @@media (min-width: 640px) {
+            .filter-label {
+                display: inline;
+            }
+        }
+
+        /* ════════════════════════════════════════════════════
+           MOBILE CARD LIST  (< 768px)
+        ════════════════════════════════════════════════════ */
+        .sales-card-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        @@media (min-width: 768px) {
+            .sales-card-list {
+                display: none;
+            }
+        }
+
+        .sale-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 14px;
+            padding: 13px 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.04);
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .sale-card-rank {
+            font-size: 1.15rem;
+            flex-shrink: 0;
+            width: 26px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .sale-card-rank-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 0.68rem;
+            font-weight: 800;
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        .sale-card-img {
+            width: 46px;
+            height: 46px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .sale-card-img-placeholder {
+            width: 46px;
+            height: 46px;
+            border-radius: 10px;
+            background: var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .sale-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sale-card-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--gray-800);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sale-card-cat {
+            display: inline-block;
+            background: var(--teal-50);
+            color: var(--teal-700);
+            padding: 1px 7px;
+            border-radius: 20px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            margin-top: 3px;
+        }
+
+        .sale-card-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 7px;
+        }
+
+        .sale-card-bar-bg {
+            flex: 1;
+            height: 5px;
+            background: var(--gray-100);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .sale-card-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--teal-400), var(--teal-600));
+            border-radius: 99px;
+        }
+
+        .sale-card-right {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .sale-card-qty {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--teal-700);
+            line-height: 1;
+        }
+
+        .sale-card-qty-label {
+            font-size: 0.66rem;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .sale-card-revenue {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 600;
+            margin-top: 5px;
+            white-space: nowrap;
+        }
+
+        /* ════════════════════════════════════════════════════
+           DESKTOP TABLE  (≥ 768px)
+        ════════════════════════════════════════════════════ */
+        .sales-table-wrap {
+            display: none;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,.04);
+        }
+
+        @@media (min-width: 768px) {
+            .sales-table-wrap {
+                display: block;
+            }
+        }
+
+        .sales-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .sales-table thead tr {
+                background: var(--gray-50);
+                border-bottom: 1px solid var(--gray-200);
+            }
+
+            .sales-table th {
+                padding: 11px 16px;
+                text-align: left;
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: var(--gray-400);
+                text-transform: uppercase;
+                letter-spacing: .06em;
+                white-space: nowrap;
+            }
+
+                .sales-table th.right {
+                    text-align: right;
+                }
+
+                .sales-table th.center {
+                    text-align: center;
+                }
+
+            .sales-table tbody tr {
+                border-bottom: 1px solid var(--gray-100);
+                transition: background .12s;
+            }
+
+                .sales-table tbody tr:last-child {
+                    border-bottom: none;
+                }
+
+                .sales-table tbody tr:hover {
+                    background: #f8fffe;
+                }
+
+            .sales-table td {
+                padding: 11px 16px;
+                vertical-align: middle;
+            }
+
+                .sales-table td.right {
+                    text-align: right;
+                }
+
+                .sales-table td.center {
+                    text-align: center;
+                }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+
+        .rank-1 {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .rank-2 {
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        .rank-3 {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .rank-n {
+            background: var(--gray-50);
+            color: var(--gray-400);
+            font-size: 0.7rem;
+        }
+
+        .qty-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .qty-bar-bg {
+            flex: 1;
+            height: 6px;
+            background: var(--gray-100);
+            border-radius: 99px;
+            overflow: hidden;
+            min-width: 60px;
+        }
+
+        .qty-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--teal-400), var(--teal-600));
+            border-radius: 99px;
+        }
+
+        .qty-num {
+            font-weight: 700;
+            color: var(--teal-700);
+            font-size: 0.92rem;
+            min-width: 28px;
+            text-align: right;
+        }
+
+        .prod-img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .prod-img-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .prod-name {
+            font-weight: 600;
+            font-size: 0.91rem;
+        }
+
+        .cat-pill {
+            display: inline-block;
+            background: var(--teal-50);
+            color: var(--teal-700);
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 3px;
+        }
+
+        .price-val {
+            font-weight: 700;
+            color: var(--teal-700);
+        }
+
+        .revenue-val {
+            font-weight: 700;
+            color: var(--gray-700);
+        }
+
+        .empty-state {
+            padding: 52px;
+            text-align: center;
+            color: var(--gray-300);
+            font-size: 0.9rem;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 14px;
+        }
+
+        /* ── Page header ── */
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            gap: 10px;
+        }
+
+            .page-header h2 {
+                margin: 0;
+                font-size: 1.2rem;
+                font-weight: 700;
+            }
+
+            .page-header p {
+                margin: 3px 0 0;
+                color: var(--gray-400);
+                font-size: 0.8rem;
+            }
+
+        @@media (min-width: 640px) {
+            .page-header {
+                margin-bottom: 20px;
+                align-items: center;
+            }
+
+                .page-header h2 {
+                    font-size: 1.35rem;
+                }
+        }
+    </style>
+}
+
+<!-- ── Header ── -->
+<div class="page-header">
+    <div>
+        <h2>Thống kê bán hàng</h2>
+        <p>@DateTime.Parse(ViewBag.FromDate).ToString("dd/MM/yyyy") → @DateTime.Parse(ViewBag.ToDate).ToString("dd/MM/yyyy")</p>
+    </div>
+    <a asp-controller="Product" asp-action="Index" class="btn btn-secondary btn-sm" style="flex-shrink:0;">← Sản phẩm</a>
+</div>
+
+<!-- ── Summary cards ── -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="sc-label">Doanh thu</div>
+        <div class="sc-value">@((((decimal)ViewBag.Revenue) / 1000).ToString("N0"))k</div>
+        <div class="sc-sub">@((decimal)ViewBag.Revenue).ToString("N0") ₫</div>
+    </div>
+    <div class="stat-card">
+        <div class="sc-label">Số đơn</div>
+        <div class="sc-value">@ViewBag.OrderCount</div>
+        <div class="sc-sub">đơn hoàn thành</div>
+    </div>
+    <div class="stat-card">
+        <div class="sc-label">Đã bán</div>
+        <div class="sc-value">@totalQty</div>
+        <div class="sc-sub">@Model.Count loại SP</div>
+    </div>
+    <div class="stat-card">
+        <div class="sc-label">TB / đơn</div>
+        <div class="sc-value">
+            @(ViewBag.OrderCount > 0
+                        ? (((decimal)ViewBag.Revenue / (int)ViewBag.OrderCount) / 1000).ToString("N0") + "k"
+                        : "—")
+        </div>
+        <div class="sc-sub">doanh thu TB</div>
+    </div>
+</div>
+
+<!-- ── Filter bar ── -->
+<div class="filter-bar">
+    <span class="filter-label">📅 Khoảng thời gian</span>
+
+    <div class="preset-row">
+        <button class="preset-btn" onclick="setPreset('today')">Hôm nay</button>
+        <button class="preset-btn" onclick="setPreset('yesterday')">Hôm qua</button>
+        <button class="preset-btn" onclick="setPreset('week')">7 ngày</button>
+        <button class="preset-btn" onclick="setPreset('month')">Tháng này</button>
+    </div>
+
+    <div class="date-row">
+        <input type="date" id="from-date" class="filter-select"
+               value="@ViewBag.FromDate" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+        <span style="color:var(--gray-400);font-size:0.85rem;flex-shrink:0;">→</span>
+        <input type="date" id="to-date" class="filter-select"
+               value="@ViewBag.ToDate" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+        <button onclick="applyFilter()" class="btn btn-primary btn-sm" style="flex-shrink:0;padding:8px 16px;">Xem</button>
+    </div>
+</div>
+
+<!-- ── Empty state ── -->
+@{
+    int mrank = 0; int drank = 0;
+}
+@if (!Model.Any())
+{
+    <div class="empty-state">Không có dữ liệu trong khoảng thời gian này ☕</div>
+}
+else
+{
+    <!-- MOBILE: card list -->
+    <div class="sales-card-list">
+        @foreach (var row in Model)
+        {
+            mrank++;
+            var pct = (int)((double)row.QtySold / maxQty * 100);
+            <div class="sale-card">
+                <div class="sale-card-rank">
+                    @if (mrank == 1)
+                    {
+                        <span>🥇</span>
+                    }
+                    else if (mrank == 2)
+                    {
+
+                        <span>🥈</span>
+                    }
+                    else if (mrank == 3)
+                    {
+
+                        <span>🥉</span>
+                    }
+                    else
+                    {
+
+                        <span class="sale-card-rank-num">@mrank</span>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(row.ImageUrl))
+                {
+                    <img class="sale-card-img" src="@row.ImageUrl" alt="@row.ProductName" />
+                }
+                else
+                {
+
+                    <div class="sale-card-img-placeholder">☕</div>
+                }
+                <div class="sale-card-info">
+                    <div class="sale-card-name">@row.ProductName</div>
+                    <span class="sale-card-cat">@row.CategoryName</span>
+                    <div class="sale-card-bar">
+                        <div class="sale-card-bar-bg">
+                            <div class="sale-card-bar-fill" style="width:@pct%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sale-card-right">
+                    <div class="sale-card-qty">@row.QtySold</div>
+                    <div class="sale-card-qty-label">ly</div>
+                    <div class="sale-card-revenue">@((row.Revenue / 1000).ToString("N0"))k ₫</div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- DESKTOP: table -->
+    <div class="sales-table-wrap">
+        <table class="sales-table">
+            <thead>
+                <tr>
+                    <th class="center" style="width:46px;">#</th>
+                    <th style="width:52px;">Ảnh</th>
+                    <th>Sản phẩm</th>
+                    <th class="right">Đơn giá</th>
+                    <th style="min-width:160px;">Số lượng đã bán</th>
+                    <th class="right">Doanh thu</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model)
+                {
+                    drank++;
+                    var pct = (int)((double)row.QtySold / maxQty * 100);
+                    <tr>
+                        <td class="center">
+                            <span class="rank-badge @(drank == 1 ? "rank-1" : drank == 2 ? "rank-2" : drank == 3 ? "rank-3" : "rank-n")">
+                                @(drank <= 3 ? (drank == 1 ? "🥇" : drank == 2 ? "🥈" : "🥉") : drank.ToString())
+                            </span>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(row.ImageUrl))
+                            {
+                                <img class="prod-img" src="@row.ImageUrl" alt="@row.ProductName" />
+                            }
+                            else
+                            {
+
+                                <div class="prod-img-placeholder">☕</div>
+                            }
+                        </td>
+                        <td>
+                            <div class="prod-name">@row.ProductName</div>
+                            <span class="cat-pill">@row.CategoryName</span>
+                        </td>
+                        <td class="right"><span class="price-val">@row.UnitPrice.ToString("N0") ₫</span></td>
+                        <td>
+                            <div class="qty-bar-wrap">
+                                <div class="qty-bar-bg">
+                                    <div class="qty-bar-fill" style="width:@pct%"></div>
+                                </div>
+                                <span class="qty-num">@row.QtySold</span>
+                                <span style="font-size:0.75rem;color:var(--gray-400);">ly</span>
+                            </div>
+                        </td>
+                        <td class="right"><span class="revenue-val">@row.Revenue.ToString("N0") ₫</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function toLocalISO(d) {
+            return d.getFullYear() + '-'
+                + String(d.getMonth()+1).padStart(2,'0') + '-'
+                + String(d.getDate()).padStart(2,'0');
+        }
+        function setPreset(p) {
+            const t = new Date(); let from, to;
+            if      (p==='today')     { from = to = toLocalISO(t); }
+            else if (p==='yesterday') { const y=new Date(t); y.setDate(y.getDate()-1); from=to=toLocalISO(y); }
+            else if (p==='week')      { const w=new Date(t); w.setDate(w.getDate()-6); from=toLocalISO(w); to=toLocalISO(t); }
+            else if (p==='month')     { from=toLocalISO(new Date(t.getFullYear(),t.getMonth(),1)); to=toLocalISO(t); }
+            document.getElementById('from-date').value = from;
+            document.getElementById('to-date').value   = to;
+            applyFilter();
+        }
+        function applyFilter() {
+            const from = document.getElementById('from-date').value;
+            const to   = document.getElementById('to-date').value;
+            if (!from || !to) return;
+            window.location.href = '/Sales?from='+from+'&to='+to;
+        }
+        (function() {
+            const from=document.getElementById('from-date').value, to=document.getElementById('to-date').value;
+            const t=toLocalISO(new Date());
+            const map={
+                today:   from===t && to===t,
+                yesterday: from===toLocalISO(new Date(Date.now()-864e5)) && to===toLocalISO(new Date(Date.now()-864e5)),
+                week:    from===toLocalISO(new Date(Date.now()-6*864e5)) && to===t,
+                month:   from===toLocalISO(new Date(new Date().getFullYear(),new Date().getMonth(),1)) && to===t,
+            };
+            document.querySelectorAll('.preset-btn').forEach(btn=>{
+                const p=btn.getAttribute('onclick').match(/'(\w+)'/)?.[1];
+                if(p&&map[p]) btn.classList.add('active');
+            });
+        })();
+        initSignalR('pos',{});
+    </script>
+}

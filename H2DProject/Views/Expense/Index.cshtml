@@ -1,0 +1,508 @@
+﻿@using H2DProject.Data
+@model List<Expense>
+@{
+    ViewData["Title"] = "Chi phí & Nguyên liệu";
+    var categories = ViewBag.Categories as List<ExpenseCategory> ?? new();
+    var totalAmount = (decimal)(ViewBag.TotalAmount ?? 0m);
+    var catSums = ViewBag.CategorySums as dynamic ?? new List<dynamic>();
+}
+
+@* ── Popup thêm chi phí ── *@
+<div id="exp-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:flex-end;justify-content:center;">
+    <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:1px solid #f3f4f6;flex-shrink:0;">
+            <div style="font-weight:600;font-size:15px;">Thêm chi phí / nguyên liệu</div>
+            <button onclick="closePopup()" style="background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;line-height:1;">✕</button>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:14px 16px;">
+
+            @* Danh mục *@
+            <div class="ef-field">
+                <label class="ef-label">Danh mục</label>
+                <div class="ef-cat-tabs" id="cat-tabs">
+                    @foreach (var cat in categories)
+                    {
+                        <button type="button" class="ef-cat-tab"
+                                data-id="@cat.CategoryId"
+                                onclick="selectCat(this)">
+                            @cat.Icon @cat.Name
+                        </button>
+                    }
+                </div>
+                <input type="hidden" id="f-catid" value="@categories.FirstOrDefault()?.CategoryId">
+            </div>
+
+            @* Tên *@
+            <div class="ef-field">
+                <label class="ef-label">Tên nguyên liệu / chi phí <span style="color:#ef4444;">*</span></label>
+                <div class="ef-quick-tags" id="quick-tags"></div>
+                <input type="text" id="f-name" class="ef-input" placeholder="VD: Cà phê, Trà, Ly giấy, Tiền điện...">
+            </div>
+
+            @* Số lượng + Đơn vị *@
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="ef-field">
+                    <label class="ef-label">Số lượng</label>
+                    <input type="number" id="f-qty" class="ef-input" placeholder="10" min="0" step="0.5" oninput="calcTotal()">
+                </div>
+                <div class="ef-field">
+                    <label class="ef-label">Đơn vị</label>
+                    <select id="f-unit" class="ef-input" style="appearance:auto;">
+                        <option value="">— không có —</option>
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="lít">lít</option>
+                        <option value="ml">ml</option>
+                        <option value="gói">gói</option>
+                        <option value="hộp">hộp</option>
+                        <option value="thùng">thùng</option>
+                        <option value="ly">ly</option>
+                        <option value="cái">cái</option>
+                        <option value="bịch">bịch</option>
+                        <option value="chai">chai</option>
+                        <option value="tháng">tháng</option>
+                    </select>
+                </div>
+            </div>
+
+            @* Đơn giá *@
+            <div class="ef-field">
+                <label class="ef-label">Đơn giá (₫) <span style="color:#ef4444;">*</span></label>
+                <input type="number" id="f-price" class="ef-input" placeholder="50000" min="0" oninput="calcTotal()">
+            </div>
+
+            @* Tổng tiền hiển thị *@
+            <div style="background:#f0fdf9;border:1px solid #99f6e4;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:#0d9488;">Tổng tiền</span>
+                <span id="f-total-display" style="font-size:18px;font-weight:700;color:#0d9488;">0 ₫</span>
+            </div>
+
+            @* Ngày *@
+            <div class="ef-field">
+                <label class="ef-label">Ngày</label>
+                <input type="date" id="f-date" class="ef-input" value="@DateTime.Today.ToString("yyyy-MM-dd")">
+            </div>
+
+            @* Ghi chú *@
+            <div class="ef-field">
+                <label class="ef-label">Ghi chú</label>
+                <textarea id="f-note" class="ef-input" rows="2" placeholder="VD: Nhà cung cấp ABC, mua 2 lần..."></textarea>
+            </div>
+        </div>
+
+        <div style="padding:10px 16px 16px;flex-shrink:0;border-top:1px solid #f3f4f6;display:flex;gap:8px;">
+            <button onclick="closePopup()" class="btn btn-secondary" style="min-width:70px;">Huỷ</button>
+            <button onclick="submitExpense()" class="btn btn-primary" style="flex:1;min-height:44px;font-weight:600;" id="submit-btn">
+                💾 Lưu chi phí
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Main page ── *@
+<div class="content-area">
+
+    @* Stats cards *@
+    <div class="exp-stats">
+        <div class="exp-stat-card">
+            <div class="exp-stat-label">Tổng chi kỳ này</div>
+            <div class="exp-stat-value" id="total-display">@totalAmount.ToString("N0") ₫</div>
+        </div>
+        <div class="exp-stat-card">
+            <div class="exp-stat-label">Số phiếu</div>
+            <div class="exp-stat-value">@Model.Count</div>
+        </div>
+    </div>
+
+    @* Breakdown theo danh mục *@
+    @if (Model.Any())
+    {
+        <div class="card" style="margin-bottom:14px;padding:12px 14px;">
+            <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Phân bổ chi phí</div>
+            @foreach (var item in (IEnumerable<dynamic>)ViewBag.CategorySums)
+            {
+                var pct = totalAmount > 0 ? (double)item.Total / (double)totalAmount * 100 : 0;
+                <div style="margin-bottom:8px;">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+                        <span>@item.Icon @item.Name</span>
+                        <span style="font-weight:600;">@((decimal)item.Total).ToString("N0") ₫ <span style="color:#9ca3af;font-weight:400;">(@pct.ToString("0")%)</span></span>
+                    </div>
+                    <div style="height:5px;background:#f3f4f6;border-radius:999px;overflow:hidden;">
+                        <div style="height:100%;width:@pct.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)%;background:#0d9488;border-radius:999px;transition:width .3s;"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @* Filter bar *@
+    <div class="card" style="margin-bottom:14px;padding:12px 14px;">
+        <form method="get" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
+            <div style="flex:1;min-width:130px;">
+                <div class="ef-label">Từ ngày</div>
+                <input type="date" name="from" class="ef-input" value="@ViewBag.From">
+            </div>
+            <div style="flex:1;min-width:130px;">
+                <div class="ef-label">Đến ngày</div>
+                <input type="date" name="to" class="ef-input" value="@ViewBag.To">
+            </div>
+            <div style="flex:1;min-width:120px;">
+                <div class="ef-label">Danh mục</div>
+                <select name="categoryId" class="ef-input" style="appearance:auto;">
+                    <option value="">Tất cả</option>
+                    @foreach (var cat in categories)
+                    {
+                        <option value="@cat.CategoryId" selected="@(ViewBag.CategoryId?.ToString()==cat.CategoryId.ToString())">
+                            @cat.Icon @cat.Name
+                        </option>
+                    }
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary" style="min-height:38px;padding:0 14px;">Lọc</button>
+            </div>
+        </form>
+    </div>
+
+    @* List *@
+    <div class="card" style="padding:0;overflow:hidden;" id="expense-list">
+        @if (!Model.Any())
+        {
+            <div style="text-align:center;padding:3rem;color:#9ca3af;">Chưa có chi phí nào trong kỳ này</div>
+        }
+        else
+        {
+            @foreach (var e in Model)
+            {
+                <div class="exp-row" id="exp-@e.ExpenseId">
+                    <div class="exp-row-icon">@e.Category.Icon</div>
+                    <div class="exp-row-body">
+                        <div class="exp-row-name">@e.Name</div>
+                        <div class="exp-row-meta">
+                            @e.ExpenseDate.ToString("dd/MM/yyyy")
+                            @if (e.Quantity.HasValue)
+                            {
+                                <span>· @e.Quantity?.ToString("G29") @e.Unit</span>
+                            }
+                            @if (!string.IsNullOrEmpty(e.Note))
+                            {
+                                <span>· @e.Note</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="exp-row-right">
+                        <div class="exp-row-amount">@e.TotalAmount.ToString("N0") ₫</div>
+                        <button class="exp-del-btn" onclick="deleteExpense(@e.ExpenseId, this)">✕</button>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@* FAB button *@
+<button class="exp-fab" onclick="openPopup()">+</button>
+
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <style>
+        /* Stats */
+        .exp-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .exp-stat-card {
+            background: #fff;
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-lg);
+            padding: 14px 16px;
+        }
+        .exp-stat-label { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
+        .exp-stat-value { font-size: 20px; font-weight: 700; color: #111827; }
+
+        /* Form fields */
+        .ef-field { margin-bottom: 12px; }
+        .ef-label { display: block; font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .3px; }
+        .ef-input {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+            color: #111827;
+            box-sizing: border-box;
+        }
+        .ef-input:focus { outline: none; border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,.1); }
+
+        /* Category tabs */
+        .ef-cat-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .ef-cat-tab {
+            padding: 5px 12px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 999px;
+            background: #fff;
+            font-size: 12px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: all .12s;
+            white-space: nowrap;
+        }
+        .ef-cat-tab.active {
+            border-color: #0d9488;
+            background: #f0fdf9;
+            color: #0d9488;
+            font-weight: 600;
+        }
+
+        /* Quick tags */
+        .ef-quick-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 6px;
+        }
+        .ef-qtag {
+            padding: 3px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            font-size: 11px;
+            cursor: pointer;
+            background: #f9fafb;
+            color: #374151;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ef-qtag:active { background: #f0fdf9; border-color: #0d9488; color: #0d9488; }
+
+        /* Expense row */
+        .exp-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            border-bottom: 1px solid #f9fafb;
+            transition: background .1s;
+        }
+        .exp-row:last-child { border-bottom: none; }
+        .exp-row-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #f0fdf9;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .exp-row-body { flex: 1; min-width: 0; }
+        .exp-row-name { font-size: 13px; font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .exp-row-meta { font-size: 11px; color: #9ca3af; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .exp-row-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .exp-row-amount { font-size: 13px; font-weight: 600; color: #ef4444; white-space: nowrap; }
+        .exp-del-btn {
+            background: none; border: none;
+            color: #d1d5db; font-size: 13px;
+            cursor: pointer; padding: 3px 5px;
+            border-radius: 5px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .exp-del-btn:active { color: #ef4444; background: #fef2f2; }
+
+        /* FAB */
+        .exp-fab {
+            position: fixed;
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+            right: 16px;
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            background: #0d9488;
+            color: #fff;
+            font-size: 28px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(13,148,136,.4);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform .12s;
+        }
+        .exp-fab:active { transform: scale(.92); }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        const af = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+        function fmtVND(n) {
+            return new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫';
+        }
+
+        // ── Quick tags theo danh mục ────────────────────────────
+        const quickTags = {
+            1: ['Cà phê', 'Trà', 'Trà sữa', 'Sữa tươi', 'Trân châu', 'Thạch', 'Đường', 'Siro', 'Cream cheese', 'Ice', 'Matcha', 'Socola'],
+            2: ['Ly giấy', 'Nắp ly', 'Ống hút', 'Túi nilon', 'Khăn giấy', 'Băng dán', 'Hộp đựng'],
+            3: ['Tiền điện', 'Tiền nước', 'Wifi', 'Xăng xe', 'Thuê mặt bằng'],
+            4: ['Lương nhân viên', 'Vệ sinh', 'Sửa chữa', 'Khác'],
+        };
+
+        function selectCat(btn) {
+            document.querySelectorAll('.ef-cat-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('f-catid').value = btn.dataset.id;
+            renderQuickTags(parseInt(btn.dataset.id));
+        }
+
+        function renderQuickTags(catId) {
+            const tags  = quickTags[catId] || [];
+            const wrap  = document.getElementById('quick-tags');
+            wrap.innerHTML = tags.map(t =>
+                `<button type="button" class="ef-qtag" onclick="setName('${t}')">${t}</button>`
+            ).join('');
+        }
+
+        function setName(name) {
+            document.getElementById('f-name').value = name;
+            document.getElementById('f-name').focus();
+        }
+
+        // ── Tính tổng ──────────────────────────────────────────
+        function calcTotal() {
+            const qty   = parseFloat(document.getElementById('f-qty').value)   || 0;
+            const price = parseFloat(document.getElementById('f-price').value) || 0;
+            const total = qty > 0 ? qty * price : price;
+            document.getElementById('f-total-display').textContent = fmtVND(total);
+        }
+
+        // ── Popup ──────────────────────────────────────────────
+        function openPopup() {
+            document.getElementById('exp-popup').style.display = 'flex';
+            // Chọn tab đầu tiên
+            const firstTab = document.querySelector('.ef-cat-tab');
+            if (firstTab) { firstTab.classList.add('active'); renderQuickTags(parseInt(firstTab.dataset.id)); }
+            setTimeout(() => document.getElementById('f-name').focus(), 150);
+        }
+
+        function closePopup() {
+            document.getElementById('exp-popup').style.display = 'none';
+            // Reset form
+            ['f-name','f-qty','f-price','f-note'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            document.getElementById('f-unit').value = '';
+            document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('f-total-display').textContent = '0 ₫';
+            document.querySelectorAll('.ef-cat-tab').forEach(b => b.classList.remove('active'));
+        }
+
+        document.getElementById('exp-popup').addEventListener('click', function(e) {
+            if (e.target === this) closePopup();
+        });
+
+        // ── Submit ─────────────────────────────────────────────
+        async function submitExpense() {
+            const catId = document.getElementById('f-catid').value;
+            const name  = document.getElementById('f-name').value.trim();
+            const qty   = document.getElementById('f-qty').value;
+            const unit  = document.getElementById('f-unit').value;
+            const price = document.getElementById('f-price').value;
+            const note  = document.getElementById('f-note').value.trim();
+            const date  = document.getElementById('f-date').value;
+
+            if (!name)  { alert('Vui lòng nhập tên chi phí!'); document.getElementById('f-name').focus(); return; }
+            if (!price) { alert('Vui lòng nhập đơn giá!');    document.getElementById('f-price').focus(); return; }
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true; btn.textContent = 'Đang lưu...';
+
+            const fd = new FormData();
+            fd.append('categoryId',  catId);
+            fd.append('name',        name);
+            if (qty)  fd.append('quantity', qty);
+            if (unit) fd.append('unit',     unit);
+            fd.append('unitPrice',   price);
+            fd.append('note',        note);
+            fd.append('expenseDate', date);
+            fd.append('__RequestVerificationToken', af);
+
+            try {
+                const res  = await fetch('/Expense/Create', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!res.ok) { alert('Lỗi: ' + (data.message || res.status)); return; }
+
+                // Thêm row mới vào list (không reload)
+                const list     = document.getElementById('expense-list');
+                const emptyMsg = list.querySelector('div[style*="text-align:center"]');
+                if (emptyMsg) emptyMsg.remove();
+
+                const catTab  = document.querySelector('.ef-cat-tab.active');
+                const catIcon = catTab ? catTab.textContent.trim().split(' ')[0] : '📋';
+                const catName = catTab ? catTab.textContent.trim() : '';
+
+                const row = document.createElement('div');
+                row.className = 'exp-row';
+                row.id = 'exp-' + data.expenseId;
+                const qtyText = qty ? `· ${qty} ${unit}` : '';
+                const noteText = note ? `· ${note}` : '';
+                row.innerHTML = `
+                    <div class="exp-row-icon">${catIcon}</div>
+                    <div class="exp-row-body">
+                        <div class="exp-row-name">${name}</div>
+                        <div class="exp-row-meta">${date.split('-').reverse().join('/')} ${qtyText} ${noteText}</div>
+                    </div>
+                    <div class="exp-row-right">
+                        <div class="exp-row-amount">${fmtVND(data.totalAmount)}</div>
+                        <button class="exp-del-btn" onclick="deleteExpense(${data.expenseId}, this)">✕</button>
+                    </div>`;
+
+                // Thêm vào đầu list
+                list.insertAdjacentElement('afterbegin', row);
+
+                // Cập nhật tổng
+                const totalEl = document.getElementById('total-display');
+                const oldTotal = parseFloat(totalEl.textContent.replace(/[^0-9]/g,'')) || 0;
+                totalEl.textContent = fmtVND(oldTotal + data.totalAmount);
+
+                closePopup();
+                showToast('✓ Đã lưu: ' + name, 'success');
+
+            } catch(e) {
+                alert('Lỗi kết nối!');
+            } finally {
+                btn.disabled = false; btn.textContent = '💾 Lưu chi phí';
+            }
+        }
+
+        // ── Xoá ───────────────────────────────────────────────
+        async function deleteExpense(id, btn) {
+            if (!confirm('Xoá phiếu chi phí này?')) return;
+            btn.disabled = true;
+
+            const fd = new FormData();
+            fd.append('id', id);
+            fd.append('__RequestVerificationToken', af);
+
+            try {
+                const res = await fetch('/Expense/Delete', { method: 'POST', body: fd });
+                if (res.ok) {
+                    document.getElementById('exp-' + id)?.remove();
+                    showToast('Đã xoá', 'info');
+                } else {
+                    alert('Lỗi xoá!');
+                    btn.disabled = false;
+                }
+            } catch {
+                alert('Lỗi kết nối!');
+                btn.disabled = false;
+            }
+        }
+    </script>
+}

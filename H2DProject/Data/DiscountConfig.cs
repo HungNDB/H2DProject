@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace H2DProject.Models;
+namespace H2DProject.Data;
 
 public partial class DiscountConfig
 {

@@ -1518,3 +1518,765 @@ body {
         font-size: 10px !important;
     }
 }
+/* ============================================================
+   H2D Cafe — order-mobile.css  (v4 — final)
+   iPhone 15 (390×844px logical), iOS Safari
+   ============================================================ */
+
+/* ══════════════════════════════════════════════════════════
+   A. iOS Safari — global fixes
+══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+
+    body {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    .product-card, .cart-item, .table-chip, .btn {
+        -webkit-touch-callout: none;
+    }
+
+    .btn, .cat-tab, .qty-btn, .table-chip,
+    .product-card, .product-add-btn, .bottom-nav a {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+        /* Tắt hover lift trên touch */
+        .product-card:hover {
+            transform: none;
+            border-color: var(--gray-100);
+        }
+
+    /* Safe area iPhone 15 Dynamic Island / Home Bar */
+    .bottom-nav {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        height: calc(60px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .main-content {
+        padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .toast-stack {
+        bottom: unset;
+        top: calc(12px + env(safe-area-inset-top, 0px));
+        right: 12px;
+        left: 12px;
+    }
+
+    .toast {
+        min-width: unset;
+        max-width: 100%;
+        animation: toastInTop 0.25s ease;
+    }
+
+    @keyframes toastInTop {
+        from {
+            opacity: 0;
+            transform: translateY(-12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   B. Ẩn top-bar trên mobile
+══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .top-bar {
+        display: none !important;
+    }
+
+    .content-area {
+        padding-top: 12px;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   C. POS — layout 1 màn hình
+══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    .pos-shell {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        grid-template-columns: 1fr;
+        height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px));
+        gap: 0;
+        overflow: hidden;
+    }
+
+    /* ── Menu panel (phần trên) ── */
+    .pos-menu-panel {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 10px 12px 0;
+        min-height: 0;
+    }
+
+        /* Ô tìm kiếm */
+        .pos-menu-panel > div:first-child {
+            flex-shrink: 0;
+            margin-bottom: 8px;
+        }
+
+    /* Category tabs */
+    .cat-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        margin-bottom: 6px;
+        gap: 6px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-shrink: 0;
+    }
+
+        .cat-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+    .cat-tab {
+        flex-shrink: 0;
+        padding: 5px 12px;
+        font-size: 12px;
+        min-height: 32px;
+    }
+
+    /* Product grid wrapper: flex chiếm phần còn lại */
+    .product-grid-wrapper {
+        flex: 1;
+        max-height: none;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius-md);
+        padding: 0; /* row list sát nhau */
+        border: 1px solid var(--gray-100);
+        background: #fff;
+    }
+
+    /* ── Product list: dạng ROW thay vì grid card ── */
+    .product-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        overflow: visible;
+    }
+
+    /* Mỗi sản phẩm = 1 dòng ngang */
+    .product-card {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        border: none;
+        border-bottom: 1px solid var(--gray-100);
+        border-radius: 0;
+        background: #fff;
+        cursor: pointer;
+        transition: background 0.12s;
+    }
+
+        .product-card:last-child {
+            border-bottom: none;
+        }
+
+        .product-card:active {
+            background: var(--teal-50);
+            transform: none;
+        }
+
+    /* Tag danh mục: ẩn (đã có tab lọc) */
+    .product-cat-tag {
+        display: none;
+    }
+
+    /* Tên món: chiếm hết khoảng trống giữa */
+    .product-name {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--gray-900);
+        margin-bottom: 0;
+        min-height: unset;
+        display: block;
+        -webkit-line-clamp: unset;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Giá: bên phải tên, trước nút + */
+    .product-price {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--teal-600);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Nút +: cuối cùng bên phải */
+    .product-add-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    /* ── Cart panel (phần dưới, cố định) ── */
+    .pos-cart-panel {
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: none;
+        border-top: 2px solid var(--gray-100);
+        border-radius: 0;
+        overflow: hidden;
+        max-height: 46vh;
+        flex-shrink: 0;
+    }
+
+    .cart-header {
+        padding: 8px 14px 5px;
+        flex-shrink: 0;
+    }
+
+    .cart-title {
+        font-size: 13px;
+    }
+
+    .cart-count {
+        font-size: 10px;
+    }
+
+    /* Table row */
+    .cart-table-row {
+        padding: 5px 14px;
+        flex-shrink: 0;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .table-chips {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 5px;
+    }
+
+        .table-chips::-webkit-scrollbar {
+            display: none;
+        }
+
+    .table-chip {
+        flex-shrink: 0;
+        padding: 4px 9px;
+        font-size: 11px;
+        min-height: 30px;
+    }
+
+    /* Cart items: scroll dọc */
+    .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        min-height: 0;
+    }
+
+    .cart-item {
+        padding: 5px 14px;
+        gap: 6px;
+    }
+
+    .ci-name {
+        font-size: 12px;
+    }
+
+    .qty-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+    }
+
+    .qty-num {
+        font-size: 12px;
+        min-width: 22px;
+    }
+
+    .ci-price {
+        font-size: 11px;
+        min-width: 58px;
+    }
+
+    .ci-del {
+        font-size: 15px;
+        min-width: 26px;
+        min-height: 26px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Note: compact 1 dòng */
+    .cart-note {
+        padding: 5px 14px;
+        flex-shrink: 0;
+    }
+
+        .cart-note textarea {
+            max-height: 36px;
+            resize: none;
+            padding: 6px 9px;
+        }
+
+    /* Summary */
+    .cart-summary {
+        padding: 5px 14px 0;
+        flex-shrink: 0;
+    }
+
+    .summary-row {
+        font-size: 11px;
+        margin-bottom: 2px;
+    }
+
+    .summary-total {
+        font-size: 14px;
+        margin: 4px 0 5px;
+    }
+
+    /* Actions */
+    .cart-actions {
+        padding: 6px 14px 10px;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+        .cart-actions .btn {
+            flex: 1;
+            justify-content: center;
+            min-height: 44px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+}
+
+/* ══════════════════════════════════════════════════════════
+   D. History / Checkout / Receipt (≤430px)
+══════════════════════════════════════════════════════════ */
+@media (max-width: 430px) {
+
+    .content-area {
+        padding: 10px 12px;
+    }
+
+    /* History filter */
+    .card > form {
+        flex-direction: column !important;
+        gap: 8px !important;
+        align-items: stretch !important;
+    }
+
+        .card > form > div {
+            width: 100% !important;
+        }
+
+            .card > form > div[style*="margin-left"] {
+                margin-left: 0 !important;
+                text-align: left !important;
+                border-top: 1px solid var(--gray-100);
+                padding-top: 8px;
+            }
+
+        .card > form input[type="date"],
+        .card > form select {
+            width: 100% !important;
+            min-height: 44px;
+        }
+
+        .card > form .btn {
+            width: 100%;
+            min-height: 44px;
+            justify-content: center;
+        }
+
+    .data-table {
+        min-width: 540px;
+        font-size: 12px;
+    }
+
+        .data-table th {
+            padding: 8px 10px;
+            font-size: 10px;
+        }
+
+        .data-table td {
+            padding: 8px 10px;
+        }
+
+        .data-table .btn-sm {
+            min-height: 34px;
+            padding: 5px 10px;
+            white-space: nowrap;
+        }
+
+    /* Checkout */
+    .content-area .btn-lg {
+        width: 100%;
+        min-height: 48px;
+        font-size: 14px;
+        justify-content: center;
+    }
+
+    /* Receipt */
+    .receipt-header {
+        padding: 14px;
+    }
+
+        .receipt-header h1 {
+            font-size: 15px;
+        }
+
+    .receipt-meta {
+        padding: 10px 14px;
+        gap: 6px;
+    }
+
+    .receipt-meta-item .label {
+        font-size: 9px;
+    }
+
+    .receipt-meta-item .value {
+        font-size: 12px;
+    }
+
+    .receipt-items {
+        padding: 10px 14px;
+    }
+
+    .receipt-item {
+        font-size: 12px;
+        padding: 5px 0;
+    }
+
+    .receipt-totals {
+        padding: 8px 14px;
+    }
+
+    .receipt-total-row {
+        font-size: 14px;
+    }
+
+    .receipt-footer {
+        padding: 10px 14px;
+        font-size: 10px;
+    }
+
+    .receipt-wrap .btn {
+        min-height: 44px;
+    }
+
+    /* Bottom nav */
+    .bottom-nav a {
+        font-size: 10px;
+        gap: 2px;
+    }
+
+    .bottom-nav .nav-icon {
+        font-size: 20px;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   E. History — filter + mobile card rows
+══════════════════════════════════════════════════════════ */
+
+/* ── Filter form (desktop: flex ngang, mobile: stack dọc) ── */
+.history-filter-card {
+    margin-bottom: 14px;
+}
+
+.history-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.hf-row {
+    display: contents; /* desktop: trải phẳng vào flex cha */
+}
+
+.hf-label {
+    display: block;
+    font-size: 11px;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+}
+
+.hf-field input,
+.hf-field select {
+    width: 160px;
+}
+
+.hf-field--grow input,
+.hf-field--grow select {
+    width: 150px;
+}
+
+.hf-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.hf-revenue {
+    margin-left: auto;
+    text-align: right;
+}
+
+.hf-revenue-label {
+    display: block;
+    font-size: 11px;
+    color: var(--gray-500);
+}
+
+.hf-revenue-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--teal-600);
+    font-family: var(--font-mono);
+}
+
+/* ── Desktop: table hiện, mobile list ẩn ── */
+.history-table-wrap {
+    display: block;
+}
+
+.history-mobile-list {
+    display: none;
+}
+
+.history-empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--gray-300);
+}
+
+/* ══════════════════════════════════════════════════════════
+   History mobile: ≤ 768px
+══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    /* Đổi chiều filter */
+    .history-filter-form {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .hf-row {
+        display: flex;
+        gap: 8px;
+    }
+
+    .hf-field {
+        flex: 1;
+    }
+
+        .hf-field input,
+        .hf-field select,
+        .hf-field--grow input,
+        .hf-field--grow select {
+            width: 100%;
+            min-height: 44px;
+            font-size: 16px;
+        }
+
+    .hf-actions {
+        align-self: flex-end;
+        flex-shrink: 0;
+    }
+
+        .hf-actions .btn {
+            min-height: 44px;
+            padding: 0 16px;
+        }
+
+    .hf-revenue {
+        margin-left: 0;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-top: 6px;
+        border-top: 1px solid var(--gray-100);
+    }
+
+    .hf-revenue-label {
+        display: inline;
+        font-size: 12px;
+    }
+
+    .hf-revenue-value {
+        font-size: 16px;
+    }
+
+    /* Ẩn table, hiện mobile list */
+    .history-table-wrap {
+        display: none;
+    }
+
+    .history-mobile-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .history-list-card {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    /* ── Mỗi đơn hàng = 1 row ── */
+    .ho-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--gray-100);
+        text-decoration: none;
+        color: inherit;
+        background: #fff;
+        transition: background 0.12s;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+        .ho-row:last-child {
+            border-bottom: none;
+        }
+
+        .ho-row:active {
+            background: var(--teal-50);
+        }
+
+    /* Nội dung bên trái */
+    .ho-left {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    /* Dòng trên: id + bàn + badge */
+    .ho-top {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .ho-id {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--gray-700);
+    }
+
+    .ho-table {
+        font-size: 12px;
+        color: var(--gray-600);
+    }
+
+    .ho-badge {
+        font-size: 10px;
+        padding: 2px 7px;
+    }
+
+    /* Dòng dưới: nhân viên + giờ + thanh toán */
+    .ho-bottom {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .ho-staff {
+        font-size: 11px;
+        color: var(--gray-500);
+    }
+
+    .ho-time {
+        font-size: 11px;
+        color: var(--gray-400);
+    }
+
+    .ho-pay {
+        font-size: 11px;
+        color: var(--gray-400);
+    }
+
+    /* Số tiền bên phải */
+    .ho-amount {
+        flex-shrink: 0;
+        text-align: right;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--teal-600);
+        line-height: 1.3;
+    }
+
+    .ho-unit {
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--gray-400);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   F. Kitchen — item + topping styles
+══════════════════════════════════════════════════════════ */
+.kcard-item-wrap {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #e5e7eb;
+}
+
+    .kcard-item-wrap:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+.kcard-item-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Mỗi topping = 1 dòng riêng, thụt vào theo qty */
+.kitem-toppings {
+    display: flex;
+    flex-direction: column;
+    margin-top: 4px;
+    padding-left: 28px;
+    gap: 2px;
+}
+
+.kitem-topping {
+    color: var(--teal-600);
+    font-size: 0.82em;
+    font-weight: 500;
+}
+

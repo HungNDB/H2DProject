@@ -1,436 +1,1365 @@
 @using H2DProject.Models
 @{
     ViewData["Title"] = "Gọi món";
-    var products   = ViewBag.Products   as List<Product>   ?? new();
-    var tables     = ViewBag.Tables     as List<Table>     ?? new();
-    var categories = ViewBag.Categories as List<Category>  ?? new();
-    var toppings   = ViewBag.Toppings   as List<Topping>   ?? new();
+    var products = ViewBag.Products as List<Product> ?? new();
+    var tables = ViewBag.Tables as List<Table> ?? new();
+    var categories = ViewBag.Categories as List<Category> ?? new();
+    var toppings = ViewBag.Toppings as List<Topping> ?? new();
+    var discounts = ViewBag.Discounts as List<DiscountConfig> ?? new();
     var firstTable = tables.FirstOrDefault();
 }
 
-<!-- ── Topping Popup ── -->
-<div id="topping-popup" style="display:none; position:fixed; inset:0;
-     background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
-    <div style="background:#fff; border-radius:var(--radius-lg); width:400px;
-                max-width:95vw; max-height:88vh; display:flex; flex-direction:column; overflow:hidden;">
-
-        <div style="padding:16px 20px; border-bottom:1px solid var(--gray-100);
-                    display:flex; justify-content:space-between; align-items:center; background:var(--gray-50);">
+@* ── Topping Popup ── *@
+<div id="topping-popup" class="popup-overlay">
+    <div class="popup-box">
+        <div class="popup-hd">
             <div>
-                <div style="font-size:15px; font-weight:600;" id="popup-name"></div>
-                <div style="font-size:12px; color:var(--teal-600); margin-top:2px;" id="popup-base-price"></div>
+                <div class="popup-name" id="popup-name"></div>
+                <div class="popup-price-base" id="popup-base-price"></div>
             </div>
-            <button onclick="closePopup()"
-                    style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray-400);">✕</button>
+            <button class="popup-close" onclick="closePopup()">✕</button>
         </div>
-
-        <div style="padding:14px 20px; overflow-y:auto; flex:1;">
+        <div class="popup-body">
             @if (toppings.Any())
             {
-                <div style="font-size:11px;color:var(--gray-500);margin-bottom:10px;
-                            text-transform:uppercase;letter-spacing:0.5px;font-weight:500;">
-                    Chọn topping (có thể chọn nhiều)
-                </div>
+                <div class="popup-section-label">Chọn topping</div>
                 @foreach (var t in toppings)
                 {
                     <div class="topping-row">
-                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
+                        <label class="topping-label">
                             <input type="checkbox" class="topping-cb"
                                    value="@t.ToppingId"
                                    data-name="@t.Name"
                                    data-price="@t.Price"
-                                   style="width:17px;height:17px;accent-color:var(--teal-600);cursor:pointer;flex-shrink:0;"
                                    onchange="onToppingChange(this)">
-                            <div>
-                                <div style="font-size:13px;font-weight:500;">@t.Name</div>
-                                <div style="font-size:11px;color:var(--teal-600);">+@t.Price.ToString("N0") ₫</div>
+                            <div class="topping-info">
+                                <div class="topping-name">@t.Name</div>
+                                <div class="topping-price">+@t.Price.ToString("N0") ₫</div>
                             </div>
                         </label>
-                        <div class="topping-qty-ctrl" style="display:none;align-items:center;gap:4px;">
-                            <button type="button" onclick="adjToppingQty(this,-1)"
-                                    style="width:24px;height:24px;border-radius:5px;border:1px solid var(--gray-100);
-                                           background:#fff;cursor:pointer;font-size:15px;display:flex;
-                                           align-items:center;justify-content:center;">−</button>
+                        <div class="topping-qty-ctrl" style="display:none;">
+                            <button type="button" onclick="adjToppingQty(this,-1)">−</button>
                             <input type="number" class="topping-qty" value="1" min="1" max="9"
-                                   style="width:34px;text-align:center;border:1px solid var(--gray-100);
-                                          border-radius:5px;font-size:12px;padding:3px;"
                                    onchange="recalcPopupTotal()">
-                            <button type="button" onclick="adjToppingQty(this,1)"
-                                    style="width:24px;height:24px;border-radius:5px;border:1px solid var(--gray-100);
-                                           background:#fff;cursor:pointer;font-size:15px;display:flex;
-                                           align-items:center;justify-content:center;">+</button>
+                            <button type="button" onclick="adjToppingQty(this,1)">+</button>
                         </div>
                     </div>
                 }
             }
             else
             {
-                <div style="text-align:center;padding:2rem;color:var(--gray-300);font-size:13px;">
-                    Không có topping
-                </div>
+                <div class="popup-empty">Không có topping</div>
             }
         </div>
-
-        <div style="padding:14px 20px;border-top:1px solid var(--gray-100);background:var(--gray-50);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <span style="font-size:13px;color:var(--gray-500);">Tổng món này:</span>
-                <span style="font-size:16px;font-weight:600;color:var(--teal-600);" id="popup-total">0 ₫</span>
+        <div class="popup-ft">
+            <div class="popup-ft-total">
+                <span>Tổng món:</span>
+                <span id="popup-total" class="popup-ft-price">0 ₫</span>
             </div>
-            <div style="display:flex;gap:8px;">
+            <div class="popup-ft-btns">
                 <button class="btn btn-secondary btn-sm" onclick="closePopup()">Huỷ</button>
                 <button class="btn btn-primary btn-full" onclick="confirmAdd()">Thêm vào đơn +</button>
             </div>
         </div>
     </div>
-    <input type="hidden" id="popup-id">
-    <input type="hidden" id="popup-price">
-    <input type="hidden" id="popup-cat">
 </div>
 
-<!-- ── POS Shell ── -->
+@* ── POS Shell ── *@
 <div class="pos-shell">
 
-    <!-- LEFT: Menu -->
+    @* ── MENU PANEL ── *@
     <div class="pos-menu-panel">
-        <div style="position:relative;margin-bottom:12px;">
-            <input type="text" class="form-input" id="search"
-                   placeholder="Tìm món..." autocomplete="off"
-                   oninput="applyFilter()" style="padding-left:32px;">
-            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);
-                         color:var(--gray-300);font-size:16px;pointer-events:none;">⌕</span>
+
+        @* Search + Category dropdown cùng 1 hàng *@
+        <div class="menu-topbar">
+            <div class="search-wrap">
+                <span class="search-icon">⌕</span>
+                <input type="text" id="search" class="search-input"
+                       placeholder="Tìm món..." autocomplete="off" oninput="applyFilter()">
+            </div>
+            <div class="cat-dropdown-wrap">
+                <button class="cat-dropdown-btn" id="cat-btn" onclick="toggleCatPicker()">
+                    <span id="cat-label">Tất cả</span>
+                    <span class="cat-arrow">▾</span>
+                </button>
+                <div class="cat-picker" id="cat-picker" style="display:none;">
+                    <button class="cat-pick-item active" onclick="pickCat(this,'','Tất cả')">Tất cả</button>
+                    @foreach (var cat in categories)
+                    {
+                        <button class="cat-pick-item" onclick="pickCat(this,'@cat.Name','@cat.Name')">@cat.Name</button>
+                    }
+                </div>
+            </div>
         </div>
 
-        <div class="cat-tabs" id="cat-tabs">
-            <button class="cat-tab active" data-cat="" onclick="setCat(this,'')">Tất cả</button>
-            @foreach (var cat in categories)
-            {
-                <button class="cat-tab" data-cat="@cat.Name"
-                        onclick="setCat(this,'@cat.Name')">@cat.Name</button>
-            }
-        </div>
-
-        <div class="product-grid-wrapper" id="product-grid-wrapper">
-            <div class="product-grid" id="product-grid">
+        @* Product list: row dạng danh sách *@
+        <div class="product-list-wrap" id="product-grid-wrapper">
+            <div class="product-list" id="product-grid">
                 @foreach (var p in products)
                 {
-                    <div class="product-card"
+                    <div class="pl-row"
                          data-id="@p.ProductId"
                          data-name="@p.Name"
                          data-cat="@p.Category.Name"
-                         onclick="openPopup(@p.ProductId,'@Html.Raw(p.Name.Replace("'","\\'"))',@p.Price,'@p.Category.Name')">
-                        <div class="product-cat-tag">@p.Category.Name</div>
-                        <div class="product-name">@p.Name</div>
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-                            <div class="product-price">@p.Price.ToString("N0") ₫</div>
-                            <button class="product-add-btn"
-                                    onclick="event.stopPropagation();openPopup(@p.ProductId,'@Html.Raw(p.Name.Replace("'","\\'"))',@p.Price,'@p.Category.Name')">+</button>
+                         onclick="openPopup(@p.ProductId,'@Html.Raw(p.Name.Replace("'", "\\'"))',@p.Price,'@p.Category.Name')">
+                        <div class="pl-info">
+                            <div class="pl-name">@p.Name</div>
                         </div>
+                        <div class="pl-price">@p.Price.ToString("N0") ₫</div>
+                        <button class="pl-add"
+                                onclick="event.stopPropagation();openPopup(@p.ProductId,'@Html.Raw(p.Name.Replace("'", "\\'"))',@p.Price,'@p.Category.Name')">
+                            +
+                        </button>
                     </div>
                 }
             </div>
         </div>
     </div>
 
-    <!-- RIGHT: Cart -->
+    @* ── CART PANEL ── *@
     <div class="pos-cart-panel">
-        <div class="cart-header">
+
+        @* Header: Đơn hàng + số món + nút ghi chú *@
+        <div class="cart-hd">
             <span class="cart-title">Đơn hàng</span>
             <span class="cart-count" id="cart-count">0 món</span>
-        </div>
-
-        <div class="cart-table-row">
-            <span class="cart-table-label">Bàn:</span>
-            <div class="table-chips" id="table-chips">
-                @foreach (var t in tables)
-                {
-                    <button class="table-chip @(t == firstTable ? "selected" : "")"
-                            data-id="@t.TableId"
-                            onclick="selectTable(this,@t.TableId)">
-                        @t.TableNumber
-                        @if (t.Status == "Occupied")
-                        {
-                            <span style="color:var(--amber-400);">●</span>
-                        }
+            <div class="cart-hd-right">
+                @* Bàn: dropdown nhỏ *@
+                <div class="tbl-wrap">
+                    <button class="tbl-btn" id="table-select-btn" onclick="toggleTablePicker()">
+                        <span id="table-select-label">Mang về</span> ▾
                     </button>
+                    <div class="tbl-picker" id="table-picker" style="display:none;">
+                        <button class="tbl-item @(firstTable == null ? "sel" : "")"
+                                onclick="pickTable(0,'Mang về')">
+                            Mang về
+                        </button>
+                        @foreach (var t in tables)
+                        {
+                            <button class="tbl-item @(t == firstTable ? "sel" : "")"
+                                    onclick="pickTable(@t.TableId,'@t.TableNumber')">
+                                @t.TableNumber@(t.Status == "Occupied" ? " ●" : "")
+                            </button>
+                        }
+                    </div>
+                </div>
+                @* Discount button *@
+                @if (discounts.Any())
+                {
+                    <div class="dc-wrap">
+                        <button class="dc-btn" id="dc-btn" onclick="toggleDcPicker(event)">
+                            <span id="dc-label">🎁</span><span class="dc-arrow">▾</span>
+                        </button>
+                        <div class="dc-picker" id="dc-picker" style="display:none;">
+                            <button class="dc-item active" onclick="pickDiscount(this,'','')">Không áp dụng</button>
+                            @foreach (var dc in discounts)
+                            {
+                                var lbl = dc.Type == "Percent"
+                                ? $"{dc.Name} −{dc.Value:0}%"
+                                : $"{dc.Name} −{dc.Value:N0}₫";
+                                <button class="dc-item"
+                                        data-id="@dc.DiscountId"
+                                        data-type="@dc.Type"
+                                        data-value="@dc.Value"
+                                        onclick="pickDiscount(this,'@dc.DiscountId','@lbl')">
+                                    @lbl
+                                </button>
+                            }
+                        </div>
+                    </div>
                 }
-                <button class="table-chip" data-id="0"
-                        onclick="selectTable(this,0)">Mang về</button>
+
+                @* Nút ghi chú toggle *@
+                <button class="note-toggle-btn" id="note-toggle" onclick="toggleNote()" title="Ghi chú">
+                    📝
+                </button>
             </div>
         </div>
 
+        @* Ghi chú: ẩn mặc định *@
+        <div class="cart-note-wrap" id="note-wrap" style="display:none;">
+            <textarea id="order-note" class="cart-note-input" rows="2"
+                      placeholder="Ghi chú: không đường, ít đá..."></textarea>
+        </div>
+
+        @* Danh sách món *@
         <div class="cart-items" id="cart-items">
             <div class="cart-empty">Chưa có món nào</div>
         </div>
 
-        <div class="cart-note">
-            <textarea id="order-note" rows="2"
-                      placeholder="Ghi chú: không đường, ít đá..."></textarea>
+        @* Summary: collapsible *@
+        <div class="cart-summary-wrap">
+            <button class="summary-toggle" onclick="toggleSummary()">
+                <span>
+                    Tổng: <strong id="total-amount-sm">0 ₫</strong>
+                </span>
+                <span class="sum-arrow" id="sum-arrow">∧</span>
+            </button>
+            <div class="summary-detail" id="summary-detail">
+                <div class="sum-row">
+                    <span>Tạm tính</span>
+                    <span id="sub-total">0 ₫</span>
+                </div>
+                @if (discounts.Any())
+                {
+                    <div class="sum-row">
+                        <span>🎁 Ưu đãi</span>
+                        <span>
+                            <select id="discount-select" onchange="renderCart()" class="discount-sel">
+                                <option value="">Không áp dụng</option>
+                                @foreach (var dc in discounts)
+                                {
+                                    var label = dc.Type == "Percent"
+                                    ? $"{dc.Name} (-{dc.Value:0}%)"
+                                    : $"{dc.Name} (-{dc.Value:N0}₫)";
+                                    <option value="@dc.DiscountId"
+                                            data-type="@dc.Type"
+                                            data-value="@dc.Value">@label</option>
+                                }
+                            </select>
+                        </span>
+                    </div>
+                    <div class="sum-row" style="color:var(--red-500);">
+                        <span>Giảm giá</span>
+                        <span id="discount-amount">0 ₫</span>
+                    </div>
+                }
+                <div class="sum-total">
+                    <span>Tổng cộng</span>
+                    <span id="total-amount">0 ₫</span>
+                </div>
+            </div>
         </div>
 
-        <div class="cart-summary">
-            <div class="summary-row">
-                <span>Tạm tính</span>
-                <span class="val" id="sub-total">0 ₫</span>
-            </div>
-            <div class="summary-row">
-                <span>VAT (10%)</span>
-                <span class="val" id="vat-amount">0 ₫</span>
-            </div>
-            <div class="summary-total">
-                <span>Tổng cộng</span>
-                <span class="val" id="total-amount">0 ₫</span>
-            </div>
-        </div>
-
+        @* Actions *@
         <div class="cart-actions">
-            <button class="btn btn-secondary btn-sm" onclick="clearCart()">Xoá</button>
-            <button class="btn btn-primary btn-full" id="submit-btn" onclick="submitOrder()">
+            <button class="btn btn-secondary btn-sm ca-clear" onclick="clearCart()">Xoá</button>
+            <button class="btn btn-primary ca-confirm" id="submit-btn" onclick="submitOrder()">
                 Xác nhận đơn →
             </button>
         </div>
     </div>
 </div>
 
-@section Styles {
-<style>
-.topping-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--gray-50);
-    border-radius: var(--radius-sm);
-    transition: background 0.1s;
-}
-.topping-row:last-child { border-bottom: none; }
-.topping-row:hover      { background: var(--gray-50); padding: 9px 8px; margin: 0 -8px; }
-.topping-row.selected   { background: var(--teal-50); padding: 9px 8px; margin: 0 -8px; }
-</style>
-}
-
 @Html.AntiForgeryToken()
 
+@section Styles {
+    <style>
+        /* ══ TOAST OVERRIDE — luôn hiện dưới cùng, không che UI ══ */
+        body .toast-stack,
+        .toast-stack {
+            position: fixed !important;
+            top: unset !important;
+            bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+            right: 10px !important;
+            left: auto !important;
+            width: auto !important;
+            max-width: 200px !important;
+            z-index: 88888 !important;
+            pointer-events: none !important;
+        }
+
+        body .toast,
+        .toast {
+            font-size: 11px !important;
+            padding: 5px 12px !important;
+            border-radius: 999px !important;
+            min-width: unset !important;
+            max-width: 200px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,.2) !important;
+            animation: toastPill .15s ease !important;
+            pointer-events: none !important;
+        }
+
+        @@keyframes toastPill {
+            from {
+                opacity: 0;
+                transform: translateY(8px) scale(.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        /* ══ END TOAST OVERRIDE ══ */
+        /* ══ Popup ══════════════════════════════════ */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .popup-box {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            width: 400px;
+            max-width: 95vw;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .popup-hd {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--gray-50);
+        }
+
+        .popup-name {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .popup-price-base {
+            font-size: 12px;
+            color: var(--teal-600);
+            margin-top: 2px;
+        }
+
+        .popup-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--gray-400);
+            padding: 0 4px;
+        }
+
+        .popup-body {
+            padding: 12px 18px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .popup-section-label {
+            font-size: 10px;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 8px;
+        }
+
+        .popup-empty {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray-300);
+            font-size: 13px;
+        }
+
+        .topping-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--gray-50);
+        }
+
+            .topping-row:last-child {
+                border-bottom: none;
+            }
+
+        .topping-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+            .topping-label input[type=checkbox] {
+                width: 17px;
+                height: 17px;
+                accent-color: var(--teal-600);
+                flex-shrink: 0;
+            }
+
+        .topping-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .topping-price {
+            font-size: 11px;
+            color: var(--teal-600);
+        }
+
+        .topping-qty-ctrl {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+            .topping-qty-ctrl button {
+                width: 24px;
+                height: 24px;
+                border-radius: 5px;
+                border: 1px solid var(--gray-100);
+                background: #fff;
+                cursor: pointer;
+                font-size: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+        .topping-qty {
+            width: 32px;
+            text-align: center;
+            border: 1px solid var(--gray-100);
+            border-radius: 5px;
+            font-size: 12px;
+            padding: 2px;
+        }
+
+        .popup-ft {
+            padding: 12px 18px;
+            border-top: 1px solid var(--gray-100);
+            background: var(--gray-50);
+        }
+
+        .popup-ft-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 10px;
+            color: var(--gray-500);
+        }
+
+        .popup-ft-price {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--teal-600);
+        }
+
+        .popup-ft-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* ══ POS Shell ══════════════════════════════ */
+        .pos-shell {
+            display: grid;
+            grid-template-rows: 1fr auto;
+            grid-template-columns: 1fr;
+            height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px));
+            overflow: hidden;
+            gap: 0;
+        }
+
+        /* ══ Menu panel ══════════════════════════════ */
+        .pos-menu-panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 8px 12px 0;
+            min-height: 0;
+        }
+
+        .menu-topbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 6px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        /* Search */
+        .search-wrap {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-300);
+            font-size: 15px;
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 7px 10px 7px 28px;
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            background: #fff;
+        }
+
+        /* Category dropdown */
+        .cat-dropdown-wrap {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .cat-dropdown-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 11px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            background: #fff;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+            .cat-dropdown-btn.active {
+                border-color: var(--teal-400);
+                background: var(--teal-50);
+                color: var(--teal-700);
+            }
+
+        .cat-arrow {
+            font-size: 10px;
+            opacity: .5;
+        }
+
+        .cat-picker {
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            z-index: 200;
+            min-width: 140px;
+            box-shadow: 0 4px 16px rgba(0,0,0,.10);
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .cat-pick-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            background: none;
+            font-size: 13px;
+            color: var(--gray-700);
+            cursor: pointer;
+            text-align: left;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+            .cat-pick-item:active, .cat-pick-item.active {
+                background: var(--teal-50);
+                color: var(--teal-700);
+                font-weight: 600;
+            }
+
+        /* Product list */
+        .product-list-wrap {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-100);
+            background: #fff;
+            min-height: 0;
+        }
+
+        .product-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pl-row {
+            display: flex;
+            align-items: center;
+            padding: 11px 12px;
+            border-bottom: 1px solid var(--gray-50);
+            gap: 8px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: background .1s;
+        }
+
+            .pl-row:last-child {
+                border-bottom: none;
+            }
+
+            .pl-row:active {
+                background: var(--teal-50);
+            }
+
+        .pl-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pl-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-900);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pl-price {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--teal-600);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .pl-add {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--teal-600);
+            color: #fff;
+            border: none;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+            .pl-add:active {
+                background: var(--teal-700);
+                transform: scale(.92);
+            }
+
+        /* ══ Cart panel ══════════════════════════════ */
+        .pos-cart-panel {
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border-top: 1.5px solid var(--gray-100);
+            overflow: hidden;
+            max-height: 52vh;
+            flex-shrink: 0;
+        }
+
+        /* Cart header */
+        .cart-hd {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px 5px;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--gray-50);
+        }
+
+        .cart-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .cart-count {
+            font-size: 11px;
+            color: var(--teal-600);
+            font-weight: 600;
+        }
+
+        .cart-hd-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Bàn dropdown nhỏ */
+        .tbl-wrap {
+            position: relative;
+        }
+
+        .tbl-btn {
+            padding: 4px 10px;
+            border: 1px solid var(--teal-400);
+            border-radius: 999px;
+            background: var(--teal-50);
+            color: var(--teal-700);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            white-space: nowrap;
+        }
+
+        .tbl-picker {
+            position: fixed;
+            background: #fff;
+            border: 1.5px solid var(--teal-400);
+            border-radius: var(--radius-md);
+            z-index: 99999;
+            display: none; /* JS sẽ set grid khi mở */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            padding: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.18);
+            min-width: 200px;
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+
+        /* ── Discount chip ── */
+        .dc-wrap {
+            position: relative;
+        }
+
+        .dc-btn {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 4px 8px;
+            border: 1px solid #fcd34d;
+            border-radius: 999px;
+            background: #fffbeb;
+            color: #92400e;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            white-space: nowrap;
+            max-width: 110px;
+            overflow: hidden;
+        }
+
+            .dc-btn.applied {
+                border-color: #f59e0b;
+                background: #fef3c7;
+            }
+
+        .dc-arrow {
+            font-size: 9px;
+            opacity: .6;
+            flex-shrink: 0;
+        }
+
+        .dc-picker {
+            position: fixed;
+            background: #fff;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            z-index: 99999;
+            min-width: 180px;
+            max-width: 220px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.15);
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .dc-item {
+            padding: 9px 12px;
+            border-radius: 6px;
+            border: none;
+            background: none;
+            font-size: 12px;
+            color: var(--gray-700);
+            cursor: pointer;
+            text-align: left;
+            -webkit-tap-highlight-color: transparent;
+            width: 100%;
+        }
+
+            .dc-item:active, .dc-item.active {
+                background: #fef3c7;
+                color: #78350f;
+                font-weight: 600;
+            }
+
+        .tbl-item {
+            padding: 7px 4px;
+            border: 1px solid var(--gray-100);
+            border-radius: 6px;
+            background: #fff;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            text-align: center;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .tbl-item:active, .tbl-item.sel {
+                background: var(--teal-50);
+                border-color: var(--teal-400);
+                color: var(--teal-700);
+            }
+
+        /* Nút ghi chú */
+        .note-toggle-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 6px;
+            opacity: .6;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+            .note-toggle-btn.active {
+                opacity: 1;
+                background: var(--amber-50);
+            }
+
+        /* Ghi chú ẩn */
+        .cart-note-wrap {
+            padding: 4px 12px;
+            flex-shrink: 0;
+        }
+
+        .cart-note-input {
+            width: 100%;
+            font-size: 13px;
+            padding: 6px 10px;
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-md);
+            resize: none;
+            color: var(--gray-700);
+        }
+
+        /* Cart items */
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            min-height: 0;
+        }
+
+        .cart-empty {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--gray-300);
+            font-size: 12px;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            gap: 6px;
+            border-bottom: 1px solid var(--gray-50);
+        }
+
+            .cart-item:last-child {
+                border-bottom: none;
+            }
+
+        .ci-name {
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+
+        .ci-topping {
+            font-size: 10px;
+            color: var(--teal-600);
+            margin-top: 1px;
+        }
+
+        .ci-left {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .qty-ctrl {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            flex-shrink: 0;
+        }
+
+        .qty-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            border: 1px solid var(--gray-100);
+            background: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .qty-num {
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .ci-price {
+            font-size: 11px;
+            color: var(--gray-500);
+            min-width: 56px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .ci-del {
+            font-size: 14px;
+            color: var(--gray-300);
+            cursor: pointer;
+            padding: 2px 4px;
+            -webkit-tap-highlight-color: transparent;
+            border: none;
+            background: none;
+        }
+
+        /* Summary collapsible */
+        .cart-summary-wrap {
+            flex-shrink: 0;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .summary-toggle {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 12px;
+            background: var(--gray-50);
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--gray-700);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+            .summary-toggle strong {
+                color: var(--teal-600);
+                font-size: 14px;
+            }
+
+        .sum-arrow {
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        .summary-detail {
+            padding: 6px 12px 4px;
+            background: #fff;
+        }
+
+        .sum-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+            align-items: center;
+        }
+
+        .sum-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+            border-top: 1px solid var(--gray-100);
+            padding-top: 5px;
+            margin-top: 2px;
+        }
+
+        .discount-sel {
+            font-size: 11px;
+            padding: 2px 5px;
+            border: 1px solid var(--gray-100);
+            border-radius: 5px;
+            color: var(--teal-700);
+            background: var(--teal-50);
+            max-width: 130px;
+        }
+
+        /* Cart actions */
+        .cart-actions {
+            display: flex;
+            gap: 8px;
+            padding: 7px 12px 10px;
+            flex-shrink: 0;
+        }
+
+        .ca-clear {
+            min-height: 44px;
+            min-width: 60px;
+        }
+
+        .ca-confirm {
+            flex: 1;
+            min-height: 44px;
+            font-size: 14px;
+            font-weight: 600;
+            justify-content: center;
+        }
+
+        /* ══ Safe area ══════════════════════════════ */
+        /* Safe area — no media query needed */
+        .bottom-nav {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            height: calc(60px + env(safe-area-inset-bottom, 0px));
+        }
+
+        .main-content {
+            padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+        }
+
+        input, select, textarea {
+            font-size: 16px;
+        }
+
+        body {
+            -webkit-text-size-adjust: 100%;
+        }
+
+        .pl-add:hover {
+            background: var(--teal-600);
+        }</style>
+}
+
 @section Scripts {
-<script>
-/* ── State ── */
-let cart = [];
-let selectedTableId = @(firstTable?.TableId ?? 0);
-let activeCat = '';
-let _pid = 0, _pprice = 0, _pname = '', _pcat = '';
+    <script>
+        let cart = [];
+        let selectedTableId = @(firstTable?.TableId ?? 0);
+        let activeCat = '';
+        let _pid = 0, _pprice = 0, _pname = '', _pcat = '';
+        let summaryOpen = false;
 
-const af = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const af = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-function fmtVND(n) {
-    return new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫';
-}
+        function fmtVND(n) {
+            return new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫';
+        }
 
-/* ══ Popup ══════════════════════════════════ */
-function openPopup(id, name, price, cat) {
-    _pid = id; _pprice = price; _pname = name; _pcat = cat;
-    document.getElementById('popup-name').textContent       = name;
-    document.getElementById('popup-base-price').textContent = fmtVND(price);
+        /* ══ Diacritics ══ */
+        function nd(s) {
+            return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\u0111/g,'d').replace(/\u0110/g,'D').toLowerCase();
+        }
 
-    // Reset
-    document.querySelectorAll('.topping-cb').forEach(cb => {
-        cb.checked = false;
-        cb.closest('.topping-row').classList.remove('selected');
-        cb.closest('.topping-row').querySelector('.topping-qty-ctrl').style.display = 'none';
-        cb.closest('.topping-row').querySelector('.topping-qty').value = 1;
-    });
+        /* ══ Category picker ══ */
+        function toggleCatPicker() {
+            const p = document.getElementById('cat-picker');
+            p.style.display = p.style.display === 'none' ? 'flex' : 'none';
+        }
+        function pickCat(el, cat, label) {
+            activeCat = cat;
+            document.getElementById('cat-label').textContent = label;
+            const btn = document.getElementById('cat-btn');
+            btn.classList.toggle('active', cat !== '');
+            document.querySelectorAll('.cat-pick-item').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('cat-picker').style.display = 'none';
+            applyFilter();
+        }
 
-    recalcPopupTotal();
-    document.getElementById('topping-popup').style.display = 'flex';
-}
+        /* ══ Table picker ══ */
+        function showPicker(picker, anchorEl, mode) {
+            // mode: 'grid' | 'flex'
+            const rect = anchorEl.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow < 260) {
+                picker.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+                picker.style.top    = 'auto';
+            } else {
+                picker.style.top    = (rect.bottom + 6) + 'px';
+                picker.style.bottom = 'auto';
+            }
+            picker.style.right = (window.innerWidth - rect.right) + 'px';
+            picker.style.left  = 'auto';
+            picker.style.display = mode;
+        }
 
-function closePopup() {
-    document.getElementById('topping-popup').style.display = 'none';
-}
+        function toggleTablePicker() {
+            const p   = document.getElementById('table-picker');
+            const btn = document.getElementById('table-select-btn');
+            if (p.style.display !== 'none') { p.style.display = 'none'; return; }
+            showPicker(p, btn, 'grid');
+        }
+        function pickTable(id, name) {
+            selectedTableId = id;
+            document.getElementById('table-select-label').textContent = name;
+            document.querySelectorAll('.tbl-item').forEach(b => b.classList.remove('sel'));
+            event.currentTarget.classList.add('sel');
+            document.getElementById('table-picker').style.display = 'none';
+        }
 
-function onToppingChange(cb) {
-    const row = cb.closest('.topping-row');
-    const qtyCtrl = row.querySelector('.topping-qty-ctrl');
-    if (cb.checked) {
-        qtyCtrl.style.display = 'flex';
-        row.classList.add('selected');
-    } else {
-        qtyCtrl.style.display = 'none';
-        row.querySelector('.topping-qty').value = 1;
-        row.classList.remove('selected');
-    }
-    recalcPopupTotal();
-}
+        /* ══ Discount picker ══ */
+        let _selectedDc = null;
 
-function adjToppingQty(btn, delta) {
-    const input = btn.closest('.topping-qty-ctrl').querySelector('.topping-qty');
-    input.value = Math.max(1, Math.min(9, parseInt(input.value) + delta));
-    recalcPopupTotal();
-}
+        function toggleDcPicker(e) {
+            e.stopPropagation();
+            const p   = document.getElementById('dc-picker');
+            const btn = document.getElementById('dc-btn');
+            if (p.style.display !== 'none') { p.style.display = 'none'; return; }
+            showPicker(p, btn, 'flex');
+        }
 
-function recalcPopupTotal() {
-    let extra = 0;
-    document.querySelectorAll('.topping-cb:checked').forEach(cb => {
-        const qty = parseInt(cb.closest('.topping-row').querySelector('.topping-qty').value) || 1;
-        extra += parseFloat(cb.dataset.price) * qty;
-    });
-    document.getElementById('popup-total').textContent = fmtVND(_pprice + extra);
-}
+        function pickDiscount(el, id, label) {
+            document.querySelectorAll('.dc-item').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            const btn = document.getElementById('dc-btn');
+            const lbl = document.getElementById('dc-label');
+            if (!id) {
+                _selectedDc = null;
+                lbl.textContent = '🎁';
+                btn.classList.remove('applied');
+            } else {
+                _selectedDc = { id: parseInt(id), type: el.dataset.type, value: parseFloat(el.dataset.value) };
+                const short = label.length > 11 ? label.substring(0, 11) + '…' : label;
+                lbl.textContent = '🎁 ' + short;
+                btn.classList.add('applied');
+            }
+            document.getElementById('dc-picker').style.display = 'none';
+            renderCart();
+        }
 
-function confirmAdd() {
-    const toppings = [];
-    document.querySelectorAll('.topping-cb:checked').forEach(cb => {
-        const qty = parseInt(cb.closest('.topping-row').querySelector('.topping-qty').value) || 1;
-        toppings.push({ toppingId: parseInt(cb.value), name: cb.dataset.name, price: parseFloat(cb.dataset.price), quantity: qty });
-    });
+        /* ══ Note toggle ══ */
+        function toggleNote() {
+            const wrap = document.getElementById('note-wrap');
+            const btn  = document.getElementById('note-toggle');
+            const open = wrap.style.display === 'none';
+            wrap.style.display = open ? '' : 'none';
+            btn.classList.toggle('active', open);
+            if (open) document.getElementById('order-note').focus();
+        }
 
-    const toppingExtra = toppings.reduce((s, t) => s + t.price * t.quantity, 0);
-    const toppingKey   = toppings.map(t => t.toppingId + '_' + t.quantity).join('|');
-    const ex = cart.find(c => c.id === _pid && c.toppingKey === toppingKey);
+        /* ══ Summary toggle ══ */
+        function toggleSummary() {
+            summaryOpen = !summaryOpen;
+            document.getElementById('summary-detail').style.display = summaryOpen ? '' : 'none';
+            document.getElementById('sum-arrow').textContent = summaryOpen ? '∧' : '∨';
+        }
+        // Mặc định ẩn summary detail
+        document.getElementById('summary-detail').style.display = 'none';
 
-    if (ex) { ex.qty++; }
-    else {
-        cart.push({ id: _pid, name: _pname, price: _pprice, cat: _pcat,
-                    qty: 1, toppings, toppingExtra, toppingKey });
-    }
+        /* ══ Close dropdowns khi click ngoài ══ */
+        document.addEventListener('click', function(e) {
+            ['cat-picker','cat-btn','table-picker','table-select-btn'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+            });
+            const catPicker = document.getElementById('cat-picker');
+            const catBtn    = document.getElementById('cat-btn');
+            if (catPicker && !catPicker.contains(e.target) && e.target !== catBtn && !catBtn.contains(e.target))
+                catPicker.style.display = 'none';
 
-    renderCart();
-    closePopup();
+            const tblPicker = document.getElementById('table-picker');
+            const tblBtn    = document.getElementById('table-select-btn');
+            if (tblPicker && !tblPicker.contains(e.target) && tblBtn && !tblBtn.contains(e.target))
+                tblPicker.style.display = 'none';
 
-    const card = document.querySelector(`.product-card[data-id="${_pid}"]`);
-    if (card) { card.style.borderColor = 'var(--teal-400)'; setTimeout(() => card.style.borderColor = '', 500); }
-    showToast('+ ' + _pname, 'success');
-}
-
-/* ══ Cart ═══════════════════════════════════ */
-function changeQty(idx, delta) {
-    cart[idx].qty += delta;
-    if (cart[idx].qty <= 0) cart.splice(idx, 1);
-    renderCart();
-}
-
-function removeItem(idx) { cart.splice(idx, 1); renderCart(); }
-
-function clearCart() {
-    if (!cart.length) return;
-    if (!confirm('Xoá toàn bộ đơn?')) return;
-    cart = []; renderCart();
-}
-
-function renderCart() {
-    const el = document.getElementById('cart-items');
-    if (!cart.length) {
-        el.innerHTML = '<div class="cart-empty">Chưa có món nào</div>';
-    } else {
-        el.innerHTML = cart.map((item, idx) => {
-            const unitTotal    = (item.price + (item.toppingExtra || 0)) * item.qty;
-            const toppingHtml  = item.toppings && item.toppings.length
-                ? `<div style="font-size:10px;color:var(--teal-600);margin-top:2px;line-height:1.4;">
-                       + ${item.toppings.map(t => t.name + (t.quantity > 1 ? ' ×'+t.quantity : '')).join(', ')}
-                   </div>` : '';
-            return `
-            <div class="cart-item">
-                <div style="flex:1;min-width:0;">
-                    <div class="ci-name">${item.name}</div>
-                    ${toppingHtml}
-                </div>
-                <div class="qty-ctrl">
-                    <button class="qty-btn" onclick="changeQty(${idx},-1)">−</button>
-                    <span class="qty-num">${item.qty}</span>
-                    <button class="qty-btn" onclick="changeQty(${idx},1)">+</button>
-                </div>
-                <div class="ci-price">${fmtVND(unitTotal)}</div>
-                <button class="ci-del" onclick="removeItem(${idx})">✕</button>
-            </div>`;
-        }).join('');
-    }
-
-    const sub   = cart.reduce((s, c) => s + (c.price + (c.toppingExtra || 0)) * c.qty, 0);
-    const vat   = Math.round(sub * 0.1);
-    const total = sub + vat;
-    const count = cart.reduce((s, c) => s + c.qty, 0);
-
-    document.getElementById('sub-total').textContent    = fmtVND(sub);
-    document.getElementById('vat-amount').textContent   = fmtVND(vat);
-    document.getElementById('total-amount').textContent = fmtVND(total);
-    document.getElementById('cart-count').textContent   = count + ' món';
-}
-
-/* ══ Table / Filter ════════════════════════ */
-function selectTable(el, id) {
-    document.querySelectorAll('.table-chip').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    selectedTableId = id;
-}
-
-function setCat(el, cat) {
-    activeCat = cat;
-    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    applyFilter();
-}
-
-function applyFilter() {
-    const q = (document.getElementById('search').value || '').toLowerCase();
-    document.querySelectorAll('.product-card').forEach(card => {
-        const matchCat  = !activeCat || card.dataset.cat === activeCat;
-        const matchName = !q || card.dataset.name.toLowerCase().includes(q);
-        card.style.display = (matchCat && matchName) ? '' : 'none';
-    });
-}
-
-/* ══ Submit ═════════════════════════════════ */
-async function submitOrder() {
-    if (!cart.length) { showToast('Chưa có món!', 'warning'); return; }
-
-    const btn = document.getElementById('submit-btn');
-    btn.disabled = true; btn.textContent = 'Đang gửi...';
-
-    try {
-        const payload = JSON.stringify({
-            tableId: selectedTableId > 0 ? selectedTableId : null,
-            note:    document.getElementById('order-note').value || null,
-            items:   cart.map(c => ({
-                productId: c.id,
-                quantity:  c.qty,
-                note:      null,
-                toppings:  (c.toppings || []).map(t => ({ toppingId: t.toppingId, quantity: t.quantity }))
-            }))
+            const dcPicker = document.getElementById('dc-picker');
+            const dcBtn    = document.getElementById('dc-btn');
+            if (dcPicker && !dcPicker.contains(e.target) && dcBtn && !dcBtn.contains(e.target))
+                dcPicker.style.display = 'none';
         });
 
-        const formData = new FormData();
-        formData.append('orderJson', payload);
-        formData.append('__RequestVerificationToken', af);
+        /* ══ Filter ══ */
+        function applyFilter() {
+            const q = nd(document.getElementById('search').value);
+            document.querySelectorAll('.pl-row').forEach(row => {
+                const matchCat  = !activeCat || row.dataset.cat === activeCat;
+                const matchName = !q || nd(row.dataset.name).includes(q) || nd(row.dataset.cat).includes(q);
+                row.style.display = (matchCat && matchName) ? '' : 'none';
+            });
+        }
 
-        const res = await fetch('/Order/Create', { method: 'POST', body: formData });
+        /* ══ Popup ══ */
+        function openPopup(id, name, price, cat) {
+            _pid = id; _pprice = price; _pname = name; _pcat = cat;
+            document.getElementById('popup-name').textContent       = name;
+            document.getElementById('popup-base-price').textContent = fmtVND(price);
+            document.querySelectorAll('.topping-cb').forEach(cb => {
+                cb.checked = false;
+                cb.closest('.topping-row').classList.remove('selected');
+                cb.closest('.topping-row').querySelector('.topping-qty-ctrl').style.display = 'none';
+                cb.closest('.topping-row').querySelector('.topping-qty').value = 1;
+            });
+            recalcPopupTotal();
+            document.getElementById('topping-popup').style.display = 'flex';
+        }
+        function closePopup() { document.getElementById('topping-popup').style.display = 'none'; }
 
-        if (!res.ok) { showToast('Lỗi ' + res.status, 'error'); return; }
+        function onToppingChange(cb) {
+            const row = cb.closest('.topping-row');
+            const ctrl = row.querySelector('.topping-qty-ctrl');
+            ctrl.style.display = cb.checked ? 'flex' : 'none';
+            if (!cb.checked) row.querySelector('.topping-qty').value = 1;
+            recalcPopupTotal();
+        }
+        function adjToppingQty(btn, delta) {
+            const inp = btn.closest('.topping-qty-ctrl').querySelector('.topping-qty');
+            inp.value = Math.max(1, Math.min(9, parseInt(inp.value) + delta));
+            recalcPopupTotal();
+        }
+        function recalcPopupTotal() {
+            let extra = 0;
+            document.querySelectorAll('.topping-cb:checked').forEach(cb => {
+                const qty = parseInt(cb.closest('.topping-row').querySelector('.topping-qty').value) || 1;
+                extra += parseFloat(cb.dataset.price) * qty;
+            });
+            document.getElementById('popup-total').textContent = fmtVND(_pprice + extra);
+        }
 
-        const data = await res.json();
-        showToast(`✓ Đơn #${data.orderId} — ${fmtVND(data.total)}`, 'success');
-        cart = []; renderCart();
-        document.getElementById('order-note').value = '';
+        function confirmAdd() {
+            const toppings = [];
+            document.querySelectorAll('.topping-cb:checked').forEach(cb => {
+                const qty = parseInt(cb.closest('.topping-row').querySelector('.topping-qty').value) || 1;
+                toppings.push({ toppingId: parseInt(cb.value), name: cb.dataset.name, price: parseFloat(cb.dataset.price), quantity: qty });
+            });
+            const toppingExtra = toppings.reduce((s,t) => s + t.price * t.quantity, 0);
+            const toppingKey   = toppings.map(t => t.toppingId+'_'+t.quantity).join('|');
+            const ex = cart.find(c => c.id === _pid && c.toppingKey === toppingKey);
+            if (ex) { ex.qty++; }
+            else { cart.push({ id:_pid, name:_pname, price:_pprice, cat:_pcat, qty:1, toppings, toppingExtra, toppingKey }); }
+            renderCart();
+            closePopup();
+            showToast('+ ' + _pname, 'success');
+        }
 
-    } catch (err) {
-        console.error(err);
-        showToast('Gửi đơn thất bại!', 'error');
-    } finally {
-        btn.disabled = false; btn.textContent = 'Xác nhận đơn →';
-    }
-}
+        /* ══ Discount ══ */
+        function getSelectedDiscount() { return _selectedDc; }
+        function calcDiscount(dc, sub) {
+            if (!dc) return 0;
+            if (dc.type === 'Percent') return Math.round(sub * dc.value / 100);
+            if (dc.type === 'Fixed')   return Math.min(dc.value, sub);
+            return 0;
+        }
 
-/* ══ SignalR ════════════════════════════════ */
-initSignalR('pos', {
-    OrderStatusChanged: (update) => {
-        const map  = { InProgress:'Đang pha', Completed:'Hoàn thành', Cancelled:'Đã huỷ' };
-        const type = update.newStatus === 'Completed' ? 'success' : update.newStatus === 'Cancelled' ? 'error' : 'info';
-        showToast(`${update.tableName} — Đơn #${update.orderId}: ${map[update.newStatus] || update.newStatus}`, type);
-    }
-});
+        /* ══ Cart render ══ */
+        function changeQty(idx, delta) {
+            cart[idx].qty += delta;
+            if (cart[idx].qty <= 0) cart.splice(idx, 1);
+            renderCart();
+        }
+        function removeItem(idx) { cart.splice(idx, 1); renderCart(); }
+        function clearCart() {
+            if (!cart.length) return;
+            if (!confirm('Xoá toàn bộ đơn?')) return;
+            cart = []; renderCart();
+        }
 
-// Đóng popup khi click ngoài
-document.getElementById('topping-popup').addEventListener('click', function(e) {
-    if (e.target === this) closePopup();
-});
+        function renderCart() {
+            const el = document.getElementById('cart-items');
+            if (!cart.length) {
+                el.innerHTML = '<div class="cart-empty">Chưa có món nào</div>';
+            } else {
+                el.innerHTML = cart.map((item, idx) => {
+                    const unitTotal   = (item.price + (item.toppingExtra||0)) * item.qty;
+                    const toppingHtml = item.toppings && item.toppings.length
+                        ? `<div class="ci-topping">+${item.toppings.map(t=>t.name+(t.quantity>1?' ×'+t.quantity:'')).join(', ')}</div>` : '';
+                    return `<div class="cart-item">
+                        <div class="ci-left">
+                            <div class="ci-name">${item.name}</div>
+                            ${toppingHtml}
+                        </div>
+                        <div class="qty-ctrl">
+                            <button class="qty-btn" onclick="changeQty(${idx},-1)">−</button>
+                            <span class="qty-num">${item.qty}</span>
+                            <button class="qty-btn" onclick="changeQty(${idx},1)">+</button>
+                        </div>
+                        <div class="ci-price">${fmtVND(unitTotal)}</div>
+                        <button class="ci-del" onclick="removeItem(${idx})">✕</button>
+                    </div>`;
+                }).join('');
+            }
 
-renderCart();
-</script>
+            const sub      = cart.reduce((s,c) => s + (c.price+(c.toppingExtra||0))*c.qty, 0);
+            const dc       = getSelectedDiscount();
+            const discount = calcDiscount(dc, sub);
+            const total    = sub - discount;
+            const count    = cart.reduce((s,c) => s + c.qty, 0);
+
+            document.getElementById('sub-total').textContent      = fmtVND(sub);
+            document.getElementById('total-amount').textContent   = fmtVND(total);
+            document.getElementById('total-amount-sm').textContent= fmtVND(total);
+            document.getElementById('cart-count').textContent     = count + ' món';
+            const discEl = document.getElementById('discount-amount');
+            if (discEl) discEl.textContent = discount > 0 ? '-'+fmtVND(discount) : '0 ₫';
+        }
+
+        /* ══ Submit ══ */
+        async function submitOrder() {
+            if (!cart.length) { showToast('Chưa có món!', 'warning'); return; }
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true; btn.textContent = 'Đang gửi...';
+            try {
+                const dc = getSelectedDiscount();
+                const explodedItems = cart.flatMap(c =>
+                    Array.from({ length: c.qty }, () => ({
+                        productId: c.id, quantity: 1, note: null,
+                        toppings: (c.toppings||[]).map(t => ({ toppingId: t.toppingId, quantity: t.quantity }))
+                    }))
+                );
+                const payload = JSON.stringify({
+                    tableId:    selectedTableId > 0 ? selectedTableId : null,
+                    note:       document.getElementById('order-note').value || null,
+                    discountId: dc ? dc.id : null,
+                    items:      explodedItems
+                });
+                const formData = new FormData();
+                formData.append('orderJson', payload);
+                formData.append('__RequestVerificationToken', af);
+                const res = await fetch('/Order/Create', { method: 'POST', body: formData });
+                if (!res.ok) { showToast('Lỗi ' + res.status, 'error'); return; }
+                const data = await res.json();
+                showToast(`✓ Đơn #${data.orderId} — ${fmtVND(data.total)}`, 'success');
+                cart = []; renderCart();
+                document.getElementById('order-note').value = '';
+                const sel = document.getElementById('discount-select');
+                if (sel) sel.value = '';
+            } catch(err) {
+                console.error(err); showToast('Gửi đơn thất bại!', 'error');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Xác nhận đơn →';
+            }
+        }
+
+        /* ══ SignalR ══ */
+        initSignalR('pos', {
+            OrderStatusChanged: (update) => {
+                const map  = { InProgress:'Đang pha', Completed:'Hoàn thành', Cancelled:'Đã huỷ' };
+                const type = update.newStatus==='Completed'?'success':update.newStatus==='Cancelled'?'error':'info';
+                showToast(`${update.tableName} — Đơn #${update.orderId}: ${map[update.newStatus]||update.newStatus}`, type);
+            }
+        });
+
+        document.getElementById('topping-popup').addEventListener('click', function(e) {
+            if (e.target === this) closePopup();
+        });
+
+        // Toast nhanh hơn khi đang order (1.2s thay vì 3s)
+        const _origShowToast = window.showToast;
+        window.showToast = function(msg, type, duration) {
+            _origShowToast && _origShowToast(msg, type, duration ?? 1200);
+        };
+
+        renderCart();
+    </script>
 }
