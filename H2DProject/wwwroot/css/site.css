@@ -1453,6 +1453,7 @@ body {
         border-radius: var(--radius-md);
     }
 }
+
 @media print {
     .sidebar, .top-bar, .bottom-nav,
     .btn, .toast-stack, #print-btn {
@@ -2279,4 +2280,3 @@ body {
     font-size: 0.82em;
     font-weight: 500;
 }
-

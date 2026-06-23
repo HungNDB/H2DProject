@@ -49,7 +49,7 @@
                 <div class="add-topping-section" id="ap-topping-section" style="display:none;">
                     <div class="add-topping-hd">
                         <span id="ap-selected-name" style="font-weight:600;font-size:13px;"></span>
-                        <span id="ap-selected-price" style="font-size:12px;color:#0d9488;"></span>
+                        <span id="ap-selected-price" style="font-size:12px;color:#c9952c;"></span>
                     </div>
                     <div class="add-topping-label">Chọn topping (tuỳ chọn)</div>
                     @foreach (var t in toppings)
@@ -68,7 +68,7 @@
                     }
                     <div class="add-topping-total">
                         <span>Tổng món:</span>
-                        <span id="ap-total-price" style="font-weight:700;color:#0d9488;">0 ₫</span>
+                        <span id="ap-total-price" style="font-weight:700;color:#c9952c;">0 ₫</span>
                     </div>
                     <div class="add-topping-btns">
                         <button class="btn btn-secondary btn-sm" onclick="backToList()">← Chọn lại</button>
@@ -83,7 +83,7 @@
                 <div class="add-topping-section" id="ap-topping-section" style="display:none;">
                     <div class="add-topping-hd">
                         <span id="ap-selected-name" style="font-weight:600;font-size:13px;"></span>
-                        <span id="ap-selected-price" style="font-size:12px;color:#0d9488;"></span>
+                        <span id="ap-selected-price" style="font-size:12px;color:#c9952c;"></span>
                     </div>
                     <div class="add-topping-btns">
                         <button class="btn btn-secondary btn-sm" onclick="backToList()">← Chọn lại</button>
@@ -107,13 +107,13 @@
         </button>
         <a asp-controller="LabelPrint" asp-action="Index" asp-route-orderId="@Model.OrderId"
            class="btn btn-secondary btn-sm"
-           style="border-color:#7c3aed;color:#7c3aed;background:#faf5ff;">
+           style="border-color:#c9952c;color:#c9952c;background:#fbf1dc;">
             🏷 In tem
         </a>
         @if (canEdit)
         {
             <button class="btn btn-secondary btn-sm" onclick="openAddPopup()"
-                    style="border-color:#0d9488;color:#0d9488;background:#f0fdf9;">
+                    style="border-color:#c9952c;color:#c9952c;background:#fbf1dc;">
                 + Thêm món
             </button>
         }
@@ -124,7 +124,7 @@
 
         <div class="receipt-header">
             <div style="font-size:28px;margin-bottom:6px;">☕</div>
-            <h1>H2D Cafe</h1>
+            <h1>Hyang Cafe</h1>
             <p>Hoá đơn thanh toán</p>
         </div>
 
@@ -182,7 +182,7 @@
                     @foreach (var t in item.OrderItemToppings)
                     {
                         <div class="receipt-item" style="padding-left:20px;font-size:.88em;color:var(--gray-400);">
-                            <span><span style="color:#0d9488;">+@t.Quantity</span> @(t.Topping?.Name ?? "—")</span>
+                            <span><span style="color:#c9952c;">+@t.Quantity</span> @(t.Topping?.Name ?? "—")</span>
                             <span class="ri-price" style="color:var(--gray-400);">
                                 @((t.Quantity * t.UnitPrice).ToString("N0")) ₫
                             </span>
@@ -245,7 +245,7 @@
                      style="border-radius:4px;display:block;" alt="QR chuyển khoản" />
             </div>
             <div class="receipt-qr-sub" id="qr-sub">
-                H2D Cafe · Đơn #@Model.OrderId · <span id="qr-amount-text">@Model.TotalAmount?.ToString("N0") ₫</span>
+                Hyang Cafe · Đơn #@Model.OrderId · <span id="qr-amount-text">@Model.TotalAmount?.ToString("N0") ₫</span>
             </div>
         </div>
 
@@ -344,7 +344,7 @@
         }
 
             .ap-row:active {
-                background: #f0fdf9;
+                background: #fbf1dc;
             }
 
         .ap-row-info {
@@ -367,7 +367,7 @@
         .ap-row-price {
             font-size: 12px;
             font-weight: 600;
-            color: #0d9488;
+            color: #c9952c;
             white-space: nowrap;
             flex-shrink: 0;
         }
@@ -376,7 +376,7 @@
             width: 30px;
             height: 30px;
             border-radius: 50%;
-            background: #0d9488;
+            background: #c9952c;
             color: #fff;
             border: none;
             font-size: 20px;
@@ -429,7 +429,7 @@
             .add-topping-label-wrap input[type=checkbox] {
                 width: 16px;
                 height: 16px;
-                accent-color: #0d9488;
+                accent-color: #c9952c;
                 flex-shrink: 0;
             }
 
@@ -439,7 +439,7 @@
 
         .add-topping-price {
             font-size: 11px;
-            color: #0d9488;
+            color: #c9952c;
             white-space: nowrap;
         }
 
@@ -540,9 +540,9 @@
         }
 
             .rc-bank-tab.active {
-                border-color: #0d9488;
-                background: #f0fdf9;
-                color: #0d9488;
+                border-color: #c9952c;
+                background: #fbf1dc;
+                color: #c9952c;
                 font-weight: 600;
             }
     </style>
@@ -579,7 +579,7 @@
                     + `?amount=${amt}&addInfo=${desc}&accountName=${name}`;
             } else {
                 url = `https://img.vietqr.io/image/VCB-0081001280745-qr_only.png`
-                    + `?amount=${amt}&addInfo=${desc}&accountName=${encodeURIComponent('H2D CAFE')}`;
+                    + `?amount=${amt}&addInfo=${desc}&accountName=${encodeURIComponent('HYANG CAFE')}`;
             }
             $id('vietqr-img').src = url;
             const amtEl = $id('qr-amount-text');
@@ -715,7 +715,7 @@
                     </div>
                     ${selectedToppings.map(t => `
                         <div class="receipt-item" style="padding-left:20px;font-size:.88em;color:#9ca3af;">
-                            <span style="color:#0d9488;">+1 ${t.name}</span>
+                            <span style="color:#c9952c;">+1 ${t.name}</span>
                             <span class="ri-price" style="color:#9ca3af;">${fmtVND(t.price)}</span>
                         </div>`).join('')}
                 `;

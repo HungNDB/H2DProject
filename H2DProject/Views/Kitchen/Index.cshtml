@@ -59,7 +59,7 @@
                             <div style="display:flex; flex-direction:column; margin-top:4px; padding-left:28px; gap:2px;">
                                 @foreach (var topping in item.OrderItemToppings)
                                 {
-                                    <span style="color:#0d9488; font-size:0.82em; font-weight:500; display:block;">
+                                    <span style="color:#c9952c; font-size:0.82em; font-weight:500; display:block;">
                                         +@topping.Quantity @(topping.Topping?.Name ?? "—")
                                     </span>
                                 }
