@@ -43,7 +43,7 @@ public class PrintService
         // ── Header ──────────────────────────────
         parts.Add(CENTER);
         parts.Add(BIG_ON); parts.Add(BOLD_ON);
-        parts.Add(T("Hyang")); parts.Add(NL);
+        parts.Add(T("H2D")); parts.Add(NL);
         parts.Add(BIG_OFF); parts.Add(BOLD_OFF);
         parts.Add(BOLD_ON);
         parts.Add(T("Coffee & Tea")); parts.Add(NL);
