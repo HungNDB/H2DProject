@@ -1518,6 +1518,99 @@ body {
         font-size: 10px !important;
     }
 }
+
+/* ============================================
+   Product Form
+   ============================================ */
+.form-container {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.form-page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.form-back-link {
+    color: var(--gray-400);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.form-page-title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.form-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    padding: 28px;
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+}
+
+.form-label .required {
+    color: red;
+}
+
+.form-image-upload {
+    width: 100%;
+    padding: 8px;
+    border: 1px dashed var(--gray-300);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.form-image-preview {
+    display: none;
+    margin-top: 10px;
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--gray-200);
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-check-input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--teal-600);
+    cursor: pointer;
+}
+
+.form-check-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+}
 /* ============================================================
    H2D Cafe — order-mobile.css  (v4 — final)
    iPhone 15 (390×844px logical), iOS Safari
@@ -2280,3 +2373,219 @@ body {
     font-weight: 500;
 }
 
+/* ============================================================
+   H. Management Table Refinements
+   ============================================================ */
+
+.management-table .item-image-placeholder {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    background: var(--gray-100);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-300);
+}
+
+.management-table .item-category-mobile {
+    display: none;
+}
+
+.management-table tbody tr:hover {
+    background: #f8fffe;
+}
+/* ============================================================
+   G. Product/Topping/Management Pages — Mobile
+   ============================================================ */
+@media (max-width: 768px) {
+    /* ── Filter bar (Product/Topping Index) ── */
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px;
+    }
+
+    .filter-search-wrap {
+        min-width: unset;
+    }
+
+    .filter-search-wrap input,
+    .filter-select {
+        font-size: 16px !important; /* iOS zoom fix */
+        min-height: 44px;
+    }
+
+    .filter-count {
+        margin-left: 0;
+        text-align: center;
+        padding-top: 8px;
+        border-top: 1px solid var(--gray-100);
+    }
+
+    .filter-clear {
+        align-self: center;
+    }
+
+    /* ── Data Table to Card List Conversion ── */
+    .management-table-wrap {
+        border: none;
+        box-shadow: none;
+        background: transparent;
+    }
+
+    .management-table {
+        border-collapse: separate;
+        border-spacing: 0 10px;
+    }
+
+    .management-table thead {
+        display: none; /* Hide table headers */
+    }
+
+    .management-table tbody,
+    .management-table tr,
+    .management-table td {
+        display: block;
+        width: 100%;
+        text-align: left !important;
+    }
+
+    .management-table tr {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid var(--gray-200);
+        padding: 12px 16px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .management-table td {
+        padding: 6px 0;
+        border: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Add labels before cell content */
+    .management-table td:before {
+        content: attr(data-label);
+        font-weight: 500;
+        color: var(--gray-500);
+        font-size: 0.85rem;
+        min-width: 80px;
+        display: inline-block;
+    }
+
+    .management-table td.item-primary-info-container {
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--gray-100);
+        margin-bottom: 8px;
+    }
+
+    .management-table td.item-primary-info-container::before {
+        display: none;
+    }
+
+    .management-table td.center {
+        justify-content: space-between;
+    }
+
+    .management-table .item-primary-info {
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--gray-100);
+        margin-bottom: 8px;
+    }
+
+    .management-table .item-image {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+
+    .management-table .item-name {
+        font-size: 1.05rem;
+        font-weight: 600;
+    }
+
+    .management-table .item-category-mobile {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--gray-400);
+        margin-top: 2px;
+    }
+
+    .management-table td[data-label="Danh mục"] {
+        display: none; /* Hide category row on mobile as it's moved to primary info */
+    }
+
+    .management-table .price-val {
+        font-size: 1rem;
+    }
+
+    .management-table .status-btn {
+        padding: 6px 16px;
+        font-size: 0.85rem;
+    }
+
+    .management-table .btn-sm {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
+    .management-table form .btn-sm {
+        padding: 8px;
+    }
+
+    /* ── Form Pages (Create/Edit) ── */
+    .form-container {
+        max-width: 100%;
+        padding: 0;
+    }
+
+    .form-page-header {
+        margin-bottom: 16px;
+    }
+
+    .form-page-title {
+        font-size: 1.2rem;
+    }
+
+    .form-card {
+        padding: 20px 16px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        font-size: 0.9rem;
+    }
+
+    .form-input, .form-select, .form-textarea {
+        padding: 12px;
+        font-size: 16px !important; /* iOS zoom fix */
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 14px;
+        font-size: 1rem;
+    }
+
+    .form-check-label {
+        font-size: 1rem;
+    }
+}

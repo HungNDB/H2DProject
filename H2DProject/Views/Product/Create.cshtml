@@ -2,58 +2,51 @@
 @model Product
 @{ ViewData["Title"] = "Thêm sản phẩm"; }
 
-<div style="max-width:640px;margin:0 auto;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-        <a asp-action="Index" style="color:var(--gray-400);text-decoration:none;font-size:0.9rem;">← Quay lại</a>
-        <h2 style="margin:0;font-size:1.3rem;font-weight:700;">Thêm sản phẩm mới</h2>
+<div class="form-container">
+    <div class="form-page-header">
+        <a asp-action="Index" class="form-back-link">← Quay lại</a>
+        <h2 class="form-page-title">Thêm sản phẩm mới</h2>
     </div>
 
-    <div style="background:white;border-radius:12px;border:1px solid var(--gray-200);padding:28px;">
+    <div class="form-card">
         <form asp-action="Create" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
 
-            <div style="margin-bottom:18px;">
-                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">
-                    Tên sản phẩm <span style="color:red;">*</span>
+            <div class="form-group">
+                <label class="form-label">
+                    Tên sản phẩm <span class="required">*</span>
                 </label>
-                <input asp-for="Name" placeholder="VD: Trà đào cam sả"
-                       style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;box-sizing:border-box;" />
+                <input asp-for="Name" placeholder="VD: Trà đào cam sả" class="form-input" />
                 <span asp-validation-for="Name" style="color:red;font-size:0.8rem;"></span>
             </div>
 
-            <div style="margin-bottom:18px;">
-                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">
-                    Danh mục <span style="color:red;">*</span>
+            <div class="form-group">
+                <label class="form-label">
+                    Danh mục <span class="required">*</span>
                 </label>
-                <select asp-for="CategoryId" asp-items="ViewBag.CategoryList"
-                        style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;box-sizing:border-box;">
+                <select asp-for="CategoryId" asp-items="ViewBag.CategoryList" class="form-select">
                     <option value="">-- Chọn danh mục --</option>
                 </select>
                 <span asp-validation-for="CategoryId" style="color:red;font-size:0.8rem;"></span>
             </div>
 
-            <div style="margin-bottom:18px;">
-                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">
-                    Giá bán (₫) <span style="color:red;">*</span>
+            <div class="form-group">
+                <label class="form-label">
+                    Giá bán (₫) <span class="required">*</span>
                 </label>
-                <input asp-for="Price" type="number" min="0" step="500" placeholder="VD: 35000"
-                       style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;box-sizing:border-box;" />
+                <input asp-for="Price" type="number" min="0" step="500" placeholder="VD: 35000" class="form-input" />
                 <span asp-validation-for="Price" style="color:red;font-size:0.8rem;"></span>
             </div>
 
-            <div style="margin-bottom:18px;">
-                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">Mô tả</label>
-                <textarea asp-for="Description" rows="3" placeholder="Mô tả ngắn về sản phẩm..."
-                          style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.95rem;resize:vertical;box-sizing:border-box;"></textarea>
+            <div class="form-group">
+                <label class="form-label">Mô tả</label>
+                <textarea asp-for="Description" rows="3" placeholder="Mô tả ngắn về sản phẩm..." class="form-textarea"></textarea>
             </div>
 
-            <div style="margin-bottom:18px;">
-                <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--gray-600);margin-bottom:6px;">Ảnh sản phẩm</label>
-                <input type="file" name="imageFile" accept="image/*"
-                       style="width:100%;padding:8px;border:1px dashed var(--gray-300);border-radius:8px;font-size:0.9rem;box-sizing:border-box;cursor:pointer;"
-                       onchange="previewImg(this)" />
-                <img id="imgPreview" src="" alt="preview"
-                     style="display:none;margin-top:10px;width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--gray-200);" />
+            <div class="form-group">
+                <label class="form-label">Ảnh sản phẩm</label>
+                <input type="file" name="imageFile" accept="image/*" class="form-image-upload" onchange="previewImg(this)" />
+                <img id="imgPreview" src="" alt="preview" class="form-image-preview" />
             </div>
 
             <div style="margin-bottom:24px;display:flex;align-items:center;gap:10px;">
@@ -66,8 +59,8 @@
                 </label>
             </div>
 
-            <div style="display:flex;gap:10px;">
-                <button type="submit" class="btn btn-primary" style="flex:1;">➕ Thêm sản phẩm</button>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-full">➕ Thêm sản phẩm</button>
                 <a asp-action="Index" class="btn btn-secondary">Huỷ</a>
             </div>
         </form>

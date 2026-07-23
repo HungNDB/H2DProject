@@ -283,23 +283,22 @@
             @foreach (var t in Model)
             {
                 <tr data-name="@t.Name.ToLower()">
-
-                    <td>
+                    <td data-label="Tên topping">
                         <div class="topping-name">@t.Name</div>
                     </td>
 
-                    <td class="right">
+                    <td class="right" data-label="Giá">
                         <span class="price-val">@t.Price.ToString("N0") ₫</span>
                     </td>
 
-                    <td class="center">
+                    <td class="center" data-label="Trạng thái">
                         <button class="status-btn @(t.IsAvailable == true ? "on" : "off")"
                                 onclick="toggleAvailable(@t.ToppingId, this)">
                             @(t.IsAvailable == true ? "✓ Đang bán" : "✗ Đã ẩn")
                         </button>
                     </td>
 
-                    <td class="center">
+                    <td class="center" data-label="Thao tác">
                         <div style="display:flex;gap:6px;justify-content:center;">
                             <a asp-action="Edit" asp-route-id="@t.ToppingId"
                                class="btn btn-secondary btn-sm">✏ Sửa</a>
@@ -323,7 +322,7 @@
                 <tr>
                     <td colspan="4" style="padding:48px;text-align:center;color:var(--gray-300);font-size:0.9rem;">
                         Không có topping nào
-                    </td>
+                    </td> 
                 </tr>
             }
         </tbody>
