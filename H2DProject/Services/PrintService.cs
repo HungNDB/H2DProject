@@ -1,4 +1,4 @@
-﻿using H2DProject.Data;
+using H2DProject.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Net.Http;
@@ -15,11 +15,12 @@ public class PrintService
     public async Task PrintReceiptAsync(Order order)
     {
         var printerName = _config["Printer:Name"] ?? "POS-80C";
-        var bytes = await BuildReceiptBytesAsync(order);   // ← đổi thành async
+        var storeName = _config["StoreSettings:StoreName"] ?? "H2D";
+        var bytes = await BuildReceiptBytesAsync(order, storeName);
         RawPrinterHelper.SendBytesToPrinter(printerName, bytes);
     }
 
-    private static async Task<byte[]> BuildReceiptBytesAsync(Order order)
+    private static async Task<byte[]> BuildReceiptBytesAsync(Order order, string storeName)
     {
         // ... (giữ nguyên tất cả byte[] INIT, CENTER, LEFT, ... const W = 46 ...)
         byte[] INIT = { 0x1B, 0x40 };
@@ -43,7 +44,7 @@ public class PrintService
         // ── Header ──────────────────────────────
         parts.Add(CENTER);
         parts.Add(BIG_ON); parts.Add(BOLD_ON);
-        parts.Add(T("H2D")); parts.Add(NL);
+        parts.Add(T(storeName)); parts.Add(NL);
         parts.Add(BIG_OFF); parts.Add(BOLD_OFF);
         parts.Add(BOLD_ON);
         parts.Add(T("Coffee & Tea")); parts.Add(NL);
@@ -104,8 +105,12 @@ public class PrintService
             parts.Add(T($"Ghi chu: {V(order.Note)}")); parts.Add(NL);
         }
 
+        // Đếm tổng số lượng món
+        var totalQty = order.OrderItems.Sum(i => i.Quantity);
+
         // ── Tổng tiền ───────────────────────────
         parts.Add(T(new string('-', W))); parts.Add(NL);
+        parts.Add(T(PadRight2("Tong so luong :", $"{totalQty}", W))); parts.Add(NL);
         parts.Add(T(PadRight2("Tam tinh :", $"{order.SubTotal ?? 0:N0}d", W))); parts.Add(NL);
         parts.Add(T(PadRight2("VAT(10%) :", $"{order.Vatamount ?? 0:N0}d", W))); parts.Add(NL);
 
@@ -135,7 +140,7 @@ public class PrintService
         {
             var amount = (long)(order.TotalAmount ?? 0);
             var description = Uri.EscapeDataString($"Don #{order.OrderId}");
-            var accountName = Uri.EscapeDataString("H2D CAFE");
+            var accountName = Uri.EscapeDataString(storeName);
             var qrUrl = $"https://img.vietqr.io/image/VCB-0081001280745-compact.png" +
                               $"?amount={amount}&addInfo={description}&accountName={accountName}";
 

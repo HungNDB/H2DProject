@@ -270,7 +270,7 @@
 
 <!-- ── Table ── -->
 <div class="topping-table-wrap">
-    <table class="topping-table" id="topping-table">
+    <table class="topping-table mob-list" id="topping-table">
         <thead>
             <tr>
                 <th>Tên topping</th>
@@ -282,7 +282,7 @@
         <tbody>
             @foreach (var t in Model)
             {
-                <tr data-name="@t.Name.ToLower()">
+                <tr class="mob-card" data-name="@t.Name.ToLower()">
                     <td data-label="Tên topping">
                         <div class="topping-name">@t.Name</div>
                     </td>

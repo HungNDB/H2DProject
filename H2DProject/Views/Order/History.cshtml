@@ -44,15 +44,15 @@
     </form>
 </div>
 
-<div class="card history-list-card">
+<div class="card history-list-card" style="padding: 0;">
     @if (!Model.Any())
     {
-        <div class="history-empty">Không có đơn hàng nào</div>
+        <div class="history-empty" style="padding: 3rem; text-align: center; color: var(--gray-400);">Không có đơn hàng nào</div>
     }
     else
     {
-        <div class="history-table-wrap">
-            <table class="data-table">
+        <div style="overflow-x: auto;">
+            <table class="data-table mob-list" style="width: 100%;">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -68,21 +68,21 @@
                 <tbody>
                     @foreach (var o in Model)
                     {
-                        <tr>
-                            <td class="mono">#@o.OrderId</td>
-                            <td>@(o.Table?.TableNumber ?? "—")</td>
-                            <td>@(o.Staff?.FullName ?? "—")</td>
-                            <td class="mono">@o.CreatedAt?.ToString("HH:mm dd/MM")</td>
-                            <td class="mono" style="color:var(--teal-600);font-weight:600;">
+                        <tr class="mob-card search-item">
+                            <td data-label="#" class="mono">#@o.OrderId</td>
+                            <td data-label="Bàn">@(o.Table?.TableNumber ?? "—")</td>
+                            <td data-label="Nhân viên">@(o.Staff?.FullName ?? "—")</td>
+                            <td data-label="Thời gian" class="mono">@o.CreatedAt?.ToString("HH:mm dd/MM")</td>
+                            <td data-label="Tổng tiền" class="mono" style="color:var(--teal-600);font-weight:600;">
                                 @o.TotalAmount?.ToString("N0") ₫
                             </td>
-                            <td style="font-size:12px;color:var(--gray-500);">@(o.PaymentMethod ?? "—")</td>
-                            <td>
+                            <td data-label="Thanh toán" style="font-size:12px;color:var(--gray-500);">@(o.PaymentMethod ?? "—")</td>
+                            <td data-label="Trạng thái">
                                 <span class="badge badge-@o.Status?.ToLower()">
                                     @(o.Status == "Pending" ? "Chờ" : o.Status == "InProgress" ? "Đang pha" : o.Status == "Completed" ? "Hoàn thành" : "Đã huỷ")
                                 </span>
                             </td>
-                            <td>
+                            <td data-label="Thao tác">
                                 <a asp-action="Receipt" asp-route-id="@o.OrderId"
                                    class="btn btn-secondary btn-sm">Xem</a>
                             </td>
@@ -90,31 +90,6 @@
                     }
                 </tbody>
             </table>
-        </div>
-
-        <div class="history-mobile-list">
-            @foreach (var o in Model)
-            {
-                <a asp-action="Receipt" asp-route-id="@o.OrderId" class="ho-row">
-                    <div class="ho-left">
-                        <div class="ho-top">
-                            <span class="ho-id mono">#@o.OrderId</span>
-                            <span class="ho-table">🪑 @(o.Table?.TableNumber ?? "—")</span>
-                            <span class="badge badge-@o.Status?.ToLower() ho-badge">
-                                @(o.Status == "Pending" ? "Chờ" : o.Status == "InProgress" ? "Đang pha" : o.Status == "Completed" ? "Hoàn thành" : "Đã huỷ")
-                            </span>
-                        </div>
-                        <div class="ho-bottom">
-                            <span class="ho-staff">@(o.Staff?.FullName ?? "—")</span>
-                            <span class="ho-time mono">@o.CreatedAt?.ToString("HH:mm dd/MM")</span>
-                            <span class="ho-pay">@(o.PaymentMethod ?? "—")</span>
-                        </div>
-                    </div>
-                    <div class="ho-amount mono">
-                        @o.TotalAmount?.ToString("N0")<br><span class="ho-unit">₫</span>
-                    </div>
-                </a>
-            }
         </div>
     }
 </div>

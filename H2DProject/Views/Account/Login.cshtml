@@ -1,14 +1,17 @@
 @model H2DProject.Models.ViewModels.LoginViewModel
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Đăng nhập";
     Layout = null;
+    var storeName = Configuration["StoreSettings:StoreName"] ?? "POS Cafe";
 }
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Đăng nhập — H2D Cafe</title>
+    <title>Đăng nhập — @storeName</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" />
@@ -29,7 +32,7 @@
 <div class="login-card">
     <div class="login-header">
         <div style="font-size:32px; margin-bottom:8px;">☕</div>
-        <h1>H2D Cafe POS</h1>
+        <h1>@storeName POS</h1>
         <p>Đăng nhập để tiếp tục</p>
     </div>
     <div class="login-body">

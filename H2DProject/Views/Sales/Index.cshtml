@@ -1,4 +1,4 @@
-﻿@model List<H2DProject.Controllers.ProductSalesRow>
+@model List<H2DProject.Controllers.ProductSalesRow>
 @{
     ViewData["Title"] = "Thống kê bán hàng";
     var totalQty = Model.Sum(x => x.QtySold);
@@ -598,64 +598,8 @@
 }
 else
 {
-    <!-- MOBILE: card list -->
-    <div class="sales-card-list">
-        @foreach (var row in Model)
-        {
-            mrank++;
-            var pct = (int)((double)row.QtySold / maxQty * 100);
-            <div class="sale-card">
-                <div class="sale-card-rank">
-                    @if (mrank == 1)
-                    {
-                        <span>🥇</span>
-                    }
-                    else if (mrank == 2)
-                    {
-
-                        <span>🥈</span>
-                    }
-                    else if (mrank == 3)
-                    {
-
-                        <span>🥉</span>
-                    }
-                    else
-                    {
-
-                        <span class="sale-card-rank-num">@mrank</span>
-                    }
-                </div>
-                @if (!string.IsNullOrEmpty(row.ImageUrl))
-                {
-                    <img class="sale-card-img" src="@row.ImageUrl" alt="@row.ProductName" />
-                }
-                else
-                {
-
-                    <div class="sale-card-img-placeholder">☕</div>
-                }
-                <div class="sale-card-info">
-                    <div class="sale-card-name">@row.ProductName</div>
-                    <span class="sale-card-cat">@row.CategoryName</span>
-                    <div class="sale-card-bar">
-                        <div class="sale-card-bar-bg">
-                            <div class="sale-card-bar-fill" style="width:@pct%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="sale-card-right">
-                    <div class="sale-card-qty">@row.QtySold</div>
-                    <div class="sale-card-qty-label">ly</div>
-                    <div class="sale-card-revenue">@((row.Revenue / 1000).ToString("N0"))k ₫</div>
-                </div>
-            </div>
-        }
-    </div>
-
-    <!-- DESKTOP: table -->
-    <div class="sales-table-wrap">
-        <table class="sales-table">
+    <div style="overflow-x: auto; background: white; border: 1px solid var(--gray-200); border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.04);">
+        <table class="sales-table mob-list" style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr>
                     <th class="center" style="width:46px;">#</th>
@@ -671,13 +615,13 @@ else
                 {
                     drank++;
                     var pct = (int)((double)row.QtySold / maxQty * 100);
-                    <tr>
-                        <td class="center">
+                    <tr class="mob-card search-item">
+                        <td data-label="#" class="center">
                             <span class="rank-badge @(drank == 1 ? "rank-1" : drank == 2 ? "rank-2" : drank == 3 ? "rank-3" : "rank-n")">
                                 @(drank <= 3 ? (drank == 1 ? "🥇" : drank == 2 ? "🥈" : "🥉") : drank.ToString())
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Ảnh">
                             @if (!string.IsNullOrEmpty(row.ImageUrl))
                             {
                                 <img class="prod-img" src="@row.ImageUrl" alt="@row.ProductName" />
@@ -688,12 +632,12 @@ else
                                 <div class="prod-img-placeholder">☕</div>
                             }
                         </td>
-                        <td>
+                        <td data-label="Sản phẩm">
                             <div class="prod-name">@row.ProductName</div>
                             <span class="cat-pill">@row.CategoryName</span>
                         </td>
-                        <td class="right"><span class="price-val">@row.UnitPrice.ToString("N0") ₫</span></td>
-                        <td>
+                        <td data-label="Đơn giá" class="right"><span class="price-val">@row.UnitPrice.ToString("N0") ₫</span></td>
+                        <td data-label="Số lượng đã bán">
                             <div class="qty-bar-wrap">
                                 <div class="qty-bar-bg">
                                     <div class="qty-bar-fill" style="width:@pct%"></div>
@@ -702,7 +646,7 @@ else
                                 <span style="font-size:0.75rem;color:var(--gray-400);">ly</span>
                             </div>
                         </td>
-                        <td class="right"><span class="revenue-val">@row.Revenue.ToString("N0") ₫</span></td>
+                        <td data-label="Doanh thu" class="right"><span class="revenue-val">@row.Revenue.ToString("N0") ₫</span></td>
                     </tr>
                 }
             </tbody>

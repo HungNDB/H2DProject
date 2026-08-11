@@ -1,9 +1,14 @@
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+@{
+    var storeName = Configuration["StoreSettings:StoreName"] ?? "POS Cafe";
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] — H2D Cafe</title>
+    <title>@ViewData["Title"] — @storeName</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -16,7 +21,7 @@
         <nav class="sidebar">
             <div class="sidebar-brand">
                 <span class="brand-icon">☕</span>
-                <span class="brand-name">H2D Cafe</span>
+                <span class="brand-name">@storeName</span>
             </div>
 
             @if (User.Identity?.IsAuthenticated == true)

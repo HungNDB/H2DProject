@@ -342,7 +342,7 @@
 
 <!-- ── Table ── -->
 <div class="prod-table-wrap">
-    <table class="prod-table" id="prod-table">
+    <table class="prod-table mob-list" id="prod-table">
         <thead>
             <tr>
                 <th style="width:60px;">Ảnh</th>
@@ -356,9 +356,9 @@
         <tbody>
             @foreach (var p in Model)
             {
-                <tr data-name="@p.Name.ToLower()" data-desc="@(p.Description?.ToLower() ?? "")">
+                <tr class="mob-card" data-name="@p.Name.ToLower()" data-desc="@(p.Description?.ToLower() ?? "")">
 
-                    <td>
+                    <td data-label="Ảnh">
                         @if (!string.IsNullOrEmpty(p.ImageUrl))
                         {
                             <img class="prod-img" src="@p.ImageUrl" alt="@p.Name" />
@@ -369,7 +369,7 @@
                         }
                     </td>
 
-                    <td>
+                    <td data-label="Tên sản phẩm">
                         <div class="prod-name">@p.Name</div>
                         @if (!string.IsNullOrEmpty(p.Description))
                         {
@@ -379,22 +379,22 @@
                         }
                     </td>
 
-                    <td>
+                    <td data-label="Danh mục">
                         <span class="cat-pill">@p.Category?.Name</span>
                     </td>
 
-                    <td class="right">
+                    <td class="right" data-label="Giá">
                         <span class="price-val">@p.Price.ToString("N0") ₫</span>
                     </td>
 
-                    <td class="center">
+                    <td class="center" data-label="Trạng thái">
                         <button class="status-btn @(p.IsAvailable == true ? "on" : "off")"
                                 onclick="toggleAvailable(@p.ProductId, this)">
                             @(p.IsAvailable == true ? "✓ Đang bán" : "✗ Đã ẩn")
                         </button>
                     </td>
 
-                    <td class="center">
+                    <td class="center" data-label="Thao tác">
                         <div style="display:flex;gap:6px;justify-content:center;">
                             <a asp-action="Edit" asp-route-id="@p.ProductId"
                                class="btn btn-secondary btn-sm">✏ Sửa</a>

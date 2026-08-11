@@ -201,6 +201,10 @@
 
         <div class="receipt-totals">
             <div class="receipt-row">
+                <span class="label">Tổng số lượng</span>
+                <span class="value" id="disp-totalqty">@Model.OrderItems.Sum(i => i.Quantity)</span>
+            </div>
+            <div class="receipt-row">
                 <span class="label">Tạm tính</span>
                 <span class="value" id="disp-subtotal">@Model.SubTotal?.ToString("N0") ₫</span>
             </div>
@@ -599,6 +603,14 @@
             renderQR();
         }
 
+        function changeTotalQty(diff) {
+            const el = $id('disp-totalqty');
+            if (el) {
+                const currentQty = parseInt(el.textContent) || 0;
+                el.textContent = currentQty + diff;
+            }
+        }
+
         // ── Popup thêm món ────────────────────────────────────────
         function openAddPopup() {
             const popup = $id('add-popup');
@@ -722,6 +734,7 @@
                 $id('receipt-items').appendChild(wrap);
 
                 updateTotal(data.newTotal);
+                changeTotalQty(1);
                 closeAddPopup();
                 showToast('✓ Đã thêm: ' + _pname, 'success');
 
@@ -751,6 +764,7 @@
                 }
                 $id('ri-' + itemId)?.remove();
                 updateTotal(data.newTotal);
+                changeTotalQty(-1);
                 showToast('Đã xoá món', 'info');
             } catch(e) {
                 alert('Lỗi kết nối!');

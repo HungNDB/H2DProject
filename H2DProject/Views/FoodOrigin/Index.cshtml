@@ -1,4 +1,4 @@
-﻿@using H2DProject.Data
+@using H2DProject.Data
 @model List<FoodOriginLog>
 @{
     ViewData["Title"] = "Sổ Nguồn Gốc Thực Phẩm";
@@ -6,7 +6,7 @@
 
 @* ── Popup nhập liệu ── *@
 <div id="fo-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:flex-end;justify-content:center;">
-    <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:90svh;display:flex;flex-direction:column;overflow:hidden;">
 
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:1px solid #f3f4f6;flex-shrink:0;">
             <div style="font-weight:600;font-size:15px;">📋 Ghi sổ nguồn gốc thực phẩm</div>
@@ -146,7 +146,7 @@
             </div>
         </div>
 
-        <div style="padding:10px 16px 16px;flex-shrink:0;border-top:1px solid #f3f4f6;display:flex;gap:8px;">
+        <div style="padding:10px 16px calc(16px + env(safe-area-inset-bottom, 0px));flex-shrink:0;border-top:1px solid #f3f4f6;display:flex;gap:8px;">
             <button onclick="closePopup()" class="btn btn-secondary" style="min-width:70px;">Huỷ</button>
             <button onclick="submitLog()" class="btn btn-primary" style="flex:1;min-height:44px;font-weight:600;" id="fo-submit-btn">
                 💾 Lưu vào sổ
@@ -228,50 +228,45 @@
         }
         else
         {
-            @foreach (var f in Model)
-            {
-                <div class="fo-row" id="fo-@f.LogId">
-                    <div class="fo-row-icon">🥦</div>
-                    <div class="fo-row-body">
-                        <div class="fo-row-name">@f.FoodName</div>
-                        <div class="fo-row-meta">
-                            @f.EntryDate.ToString("dd/MM/yyyy")
-                            @if (f.Quantity.HasValue)
-                            {
-                                <span>· @f.Quantity?.ToString("G29") @f.Unit</span>
-                            }
-                            @if (!string.IsNullOrEmpty(f.Supplier))
-                            {
-                                <span>· @f.Supplier</span>
-                            }
-                            @if (!string.IsNullOrEmpty(f.Origin))
-                            {
-                                <span>· @f.Origin</span>
-                            }
-                        </div>
-                        @if (!string.IsNullOrEmpty(f.Condition) || !string.IsNullOrEmpty(f.InvoiceInfo))
+            <div style="overflow-x: auto;">
+                <table class="data-table mob-list" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Tên thực phẩm</th>
+                            <th>Thông tin nhập</th>
+                            <th>Trạng thái</th>
+                            <th>Người nhận</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fo-tbody">
+                        @foreach (var f in Model)
                         {
-                            <div class="fo-row-tags">
-                                @if (!string.IsNullOrEmpty(f.Condition))
-                                {
-                                    <span class="fo-tag fo-tag-green">@f.Condition</span>
-                                }
-                                @if (!string.IsNullOrEmpty(f.InvoiceInfo))
-                                {
-                                    <span class="fo-tag fo-tag-blue">HĐ: @f.InvoiceInfo</span>
-                                }
-                            </div>
+                            <tr class="mob-card search-item" id="fo-@f.LogId">
+                                <td data-label="Tên thực phẩm" style="font-weight: 600;">🥦 @f.FoodName</td>
+                                <td data-label="Thông tin nhập">
+                                    <div style="font-size: 13px;">@f.EntryDate.ToString("dd/MM/yyyy")</div>
+                                    <div style="font-size: 12px; color: var(--gray-500);">
+                                        @if (f.Quantity.HasValue) { <span>SL: @f.Quantity?.ToString("G29") @f.Unit</span> }
+                                        @if (!string.IsNullOrEmpty(f.Supplier)) { <span>· NCC: @f.Supplier</span> }
+                                        @if (!string.IsNullOrEmpty(f.Origin)) { <span>· Nguồn: @f.Origin</span> }
+                                    </div>
+                                </td>
+                                <td data-label="Trạng thái">
+                                    @if (!string.IsNullOrEmpty(f.Condition)) { <span class="fo-tag fo-tag-green">@f.Condition</span> }
+                                    @if (!string.IsNullOrEmpty(f.InvoiceInfo)) { <span class="fo-tag fo-tag-blue">HĐ: @f.InvoiceInfo</span> }
+                                </td>
+                                <td data-label="Người nhận">
+                                    @if (!string.IsNullOrEmpty(f.ReceivedBy)) { <span>👤 @f.ReceivedBy</span> }
+                                </td>
+                                <td data-label="Thao tác">
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteLog(@f.LogId, this)">✕ Xoá</button>
+                                </td>
+                            </tr>
                         }
-                    </div>
-                    <div class="fo-row-right">
-                        @if (!string.IsNullOrEmpty(f.ReceivedBy))
-                        {
-                            <div class="fo-row-receiver">👤 @f.ReceivedBy</div>
-                        }
-                        <button class="exp-del-btn" onclick="deleteLog(@f.LogId, this)">✕</button>
-                    </div>
-                </div>
-            }
+                    </tbody>
+                </table>
+            </div>
         }
     </div>
 </div>
@@ -576,9 +571,11 @@
                 if (!res.ok) { alert('Lỗi: ' + (data.message || res.status)); return; }
 
                 // Thêm row mới vào list
-                const list = document.getElementById('fo-list');
-                const empty = list.querySelector('div[style*="text-align:center"]');
-                if (empty) empty.remove();
+                let tbody = document.getElementById('fo-tbody');
+                if (!tbody) {
+                    window.location.reload();
+                    return;
+                }
 
                 const qty      = document.getElementById('f-qty').value;
                 const unit     = document.getElementById('f-unit').value;
@@ -588,32 +585,33 @@
                 const inv      = document.getElementById('f-invoice').value.trim();
                 const recv     = document.getElementById('f-receivedby').value.trim();
 
-                const qtyText  = qty  ? `· ${qty} ${unit}` : '';
-                const suppText = supplier ? `· ${supplier}` : '';
-                const origText = origin   ? `· ${origin}`   : '';
+                const qtyText  = qty  ? `<span>SL: ${qty} ${unit}</span>` : '';
+                const suppText = supplier ? `<span>· NCC: ${supplier}</span>` : '';
+                const origText = origin   ? `<span>· Nguồn: ${origin}</span>`   : '';
                 const condTag  = cond ? `<span class="fo-tag fo-tag-green">${cond}</span>` : '';
                 const invTag   = inv  ? `<span class="fo-tag fo-tag-blue">HĐ: ${inv}</span>` : '';
-                const tagsHtml = (condTag || invTag)
-                    ? `<div class="fo-row-tags">${condTag}${invTag}</div>` : '';
-                const recvHtml = recv
-                    ? `<div class="fo-row-receiver">👤 ${recv}</div>` : '';
+                const recvHtml = recv ? `<span>👤 ${recv}</span>` : '';
 
-                const row = document.createElement('div');
-                row.className = 'fo-row';
+                const row = document.createElement('tr');
+                row.className = 'mob-card search-item';
                 row.id = 'fo-' + data.logId;
                 row.innerHTML = `
-                    <div class="fo-row-icon">🥦</div>
-                    <div class="fo-row-body">
-                        <div class="fo-row-name">${data.foodName}</div>
-                        <div class="fo-row-meta">${data.entryDate} ${qtyText} ${suppText} ${origText}</div>
-                        ${tagsHtml}
-                    </div>
-                    <div class="fo-row-right">
-                        ${recvHtml}
-                        <button class="exp-del-btn" onclick="deleteLog(${data.logId}, this)">✕</button>
-                    </div>`;
+                    <td data-label="Tên thực phẩm" style="font-weight: 600;">🥦 ${data.foodName}</td>
+                    <td data-label="Thông tin nhập">
+                        <div style="font-size: 13px;">${data.entryDate}</div>
+                        <div style="font-size: 12px; color: var(--gray-500);">
+                            ${qtyText} ${suppText} ${origText}
+                        </div>
+                    </td>
+                    <td data-label="Trạng thái">
+                        ${condTag} ${invTag}
+                    </td>
+                    <td data-label="Người nhận">${recvHtml}</td>
+                    <td data-label="Thao tác">
+                        <button class="btn btn-secondary btn-sm" onclick="deleteLog(${data.logId}, this)">✕ Xoá</button>
+                    </td>`;
 
-                list.insertAdjacentElement('afterbegin', row);
+                tbody.insertAdjacentElement('afterbegin', row);
 
                 // Cập nhật đếm
                 const countEl = document.getElementById('total-count');
