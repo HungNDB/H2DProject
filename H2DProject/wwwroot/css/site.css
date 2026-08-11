@@ -2589,3 +2589,40 @@ body {
         font-size: 1rem;
     }
 }
+/* Mobile Table Fitting Optimizations */
+@media (max-width: 768px) {
+    /* Cho phép table co giãn 100% thay vi min-width 600px */
+    .data-table, .prod-table, .topping-table {
+        min-width: unset !important;
+        width: 100% !important;
+    }
+    
+    .data-table th, .data-table td,
+    .prod-table th, .prod-table td {
+        padding: 8px 4px !important;
+        font-size: 12px !important;
+        white-space: normal !important;
+    }
+    
+    .hide-on-mobile {
+        display: none !important;
+    }
+
+    /* Thu nh? hình ?nh s?n ph?m */
+    .prod-img, .prod-img-placeholder {
+        width: 34px !important;
+        height: 34px !important;
+    }
+    
+    /* Hi?n th? bottom-nav luôn luôn n?u b? bug */
+    .bottom-nav {
+        display: flex !important;
+        z-index: 9999 !important;
+    }
+    
+    .shell {
+        height: auto;
+        min-height: 100vh;
+        padding-bottom: 70px;
+    }
+}

@@ -57,10 +57,10 @@
                     <tr>
                         <th>#</th>
                         <th>Bàn</th>
-                        <th>Nhân viên</th>
+                        <th class="hide-on-mobile">Nhân viên</th>
                         <th>Thời gian</th>
                         <th>Tổng tiền</th>
-                        <th>Thanh toán</th>
+                        <th class="hide-on-mobile">Thanh toán</th>
                         <th>Trạng thái</th>
                         <th></th>
                     </tr>
@@ -71,12 +71,12 @@
                         <tr>
                             <td class="mono">#@o.OrderId</td>
                             <td>@(o.Table?.TableNumber ?? "—")</td>
-                            <td>@(o.Staff?.FullName ?? "—")</td>
+                            <td class="hide-on-mobile">@(o.Staff?.FullName ?? "—")</td>
                             <td class="mono">@o.CreatedAt?.ToString("HH:mm dd/MM")</td>
                             <td class="mono" style="color:var(--teal-600);font-weight:600;">
                                 @o.TotalAmount?.ToString("N0") ₫
                             </td>
-                            <td style="font-size:12px;color:var(--gray-500);">@(o.PaymentMethod ?? "—")</td>
+                            <td class="hide-on-mobile" style="font-size:12px;color:var(--gray-500);">@(o.PaymentMethod ?? "—")</td>
                             <td>
                                 <span class="badge badge-@o.Status?.ToLower()">
                                     @(o.Status == "Pending" ? "Chờ" : o.Status == "InProgress" ? "Đang pha" : o.Status == "Completed" ? "Hoàn thành" : "Đã huỷ")

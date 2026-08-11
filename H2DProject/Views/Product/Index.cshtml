@@ -144,6 +144,10 @@
                     text-align: center;
                 }
 
+                .prod-table th.center {
+                    text-align: center;
+                }
+
             .prod-table tbody tr {
                 border-bottom: 1px solid var(--gray-100);
                 transition: background .12s;
@@ -170,28 +174,23 @@
                     text-align: center;
                 }
 
-            /* highlight row khi tìm kiếm */
-            .management-table tbody tr.search-hidden {
-                display: none !important;
-            }
-
         .prod-img {
-            width: 46px;
-            height: 46px;
+            width: 40px;
+            height: 40px;
             object-fit: cover;
             border-radius: 8px;
             border: 1px solid var(--gray-200);
         }
 
         .prod-img-placeholder {
-            width: 46px;
-            height: 46px;
+            width: 40px;
+            height: 40px;
             border-radius: 8px;
             background: var(--gray-100);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 18px;
         }
 
         .prod-name {
@@ -342,15 +341,15 @@
 
 <!-- ── Table ── -->
 <div class="management-table-wrap">
-    <table class="prod-table management-table" id="prod-table">
+    <table class="prod-table" id="prod-table">
         <thead>
             <tr>
-                <th style="width:60px;">Ảnh</th>
+                <th width="60">Ảnh</th>
                 <th>Tên sản phẩm</th>
-                <th>Danh mục</th>
+                <th class="hide-on-mobile">Danh mục</th>
                 <th class="right">Giá</th>
-                <th class="center">Trạng thái</th>
-                <th class="center">Thao tác</th>
+                <th class="center" width="100">Trạng thái</th>
+                <th width="40"></th>
             </tr>
         </thead>
         <tbody>
@@ -358,7 +357,7 @@
             {
                 <tr data-name="@p.Name.ToLower()" data-desc="@(p.Description?.ToLower() ?? "")">
 
-                    <td data-label="Ảnh">
+                    <td>
                         @if (!string.IsNullOrEmpty(p.ImageUrl))
                         {
                             <img class="prod-img" src="@p.ImageUrl" alt="@p.Name" />
@@ -369,7 +368,7 @@
                         }
                     </td>
 
-                    <td data-label="Tên sản phẩm">
+                    <td>
                         <div class="prod-name">@p.Name</div>
                         @if (!string.IsNullOrEmpty(p.Description))
                         {
@@ -379,15 +378,15 @@
                         }
                     </td>
 
-                    <td data-label="Danh mục">
+                    <td class="hide-on-mobile">
                         <span class="cat-pill">@p.Category?.Name</span>
                     </td>
 
-                    <td data-label="Giá" class="right">
+                    <td class="right">
                         <span class="price-val">@p.Price.ToString("N0") ₫</span>
                     </td>
 
-                    <td data-label="Trạng thái" class="center">
+                    <td class="center">
                         <button class="status-btn @(p.IsAvailable == true ? "on" : "off")"
                                 onclick="toggleAvailable(@p.ProductId, this)">
                             @(p.IsAvailable == true ? "✓ Đang bán" : "✗ Đã ẩn")
