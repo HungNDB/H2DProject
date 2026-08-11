@@ -106,7 +106,7 @@
             }
 
         /* ── Table ── */
-        .topping-table-wrap {
+        .management-table-wrap {
             background: white;
             border-radius: 12px;
             border: 1px solid var(--gray-200);
@@ -155,9 +155,10 @@
                     background: #f8fffe;
                 }
 
-                .topping-table tbody tr.search-hidden {
-                    display: none;
-                }
+               /* highlight row khi tìm kiếm */
+            .management-table tbody tr.search-hidden {
+                display: none !important;
+            }
 
             .topping-table td {
                 padding: 12px 16px;
@@ -172,7 +173,7 @@
                     text-align: center;
                 }
 
-        .topping-name {
+        .prod-name {
             font-weight: 600;
             font-size: 0.92rem;
         }
@@ -269,8 +270,8 @@
 </div>
 
 <!-- ── Table ── -->
-<div class="topping-table-wrap">
-    <table class="topping-table mob-list" id="topping-table">
+<div class="management-table-wrap">
+    <table class="prod-table management-table" id="topping-table">
         <thead>
             <tr>
                 <th>Tên topping</th>
@@ -282,23 +283,23 @@
         <tbody>
             @foreach (var t in Model)
             {
-                <tr class="mob-card" data-name="@t.Name.ToLower()">
+                <tr data-name="@t.Name.ToLower()">
                     <td data-label="Tên topping">
-                        <div class="topping-name">@t.Name</div>
+                        <div class="prod-name">@t.Name</div>
                     </td>
 
-                    <td class="right" data-label="Giá">
+                    <td data-label="Giá" class="right">
                         <span class="price-val">@t.Price.ToString("N0") ₫</span>
                     </td>
 
-                    <td class="center" data-label="Trạng thái">
+                    <td data-label="Trạng thái" class="center">
                         <button class="status-btn @(t.IsAvailable == true ? "on" : "off")"
                                 onclick="toggleAvailable(@t.ToppingId, this)">
                             @(t.IsAvailable == true ? "✓ Đang bán" : "✗ Đã ẩn")
                         </button>
                     </td>
 
-                    <td class="center" data-label="Thao tác">
+                    <td data-label="Thao tác" class="center">
                         <div style="display:flex;gap:6px;justify-content:center;">
                             <a asp-action="Edit" asp-route-id="@t.ToppingId"
                                class="btn btn-secondary btn-sm">✏ Sửa</a>
